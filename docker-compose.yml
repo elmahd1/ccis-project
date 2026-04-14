@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. La Base de données MySQL
+  db:
+    image: mysql:8.0
+    container_name: app_mysql
+    restart: always # Redémarre automatiquement si ça plante
+    environment:
+      MYSQL_DATABASE: nom_de_ta_base
+      MYSQL_ROOT_PASSWORD: root_password_securise
+    volumes:
+      - db_data:/var/lib/mysql # Sauvegarde les données sur le disque du client
+    ports:
+      - "3306:3306"
+
+  # 2. Le Backend Spring Boot
+  backend:
+    build: ./backend
+    container_name: app_backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      # L'URL pointe vers le conteneur "db" défini au-dessus
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/nom_de_ta_base?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root_password_securise
+    ports:
+      - "8080:8080"
+
+  # 3. Le Frontend React
+  frontend:
+    build: ./frontend
+    container_name: app_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:80" # Accessible via http://localhost:3000
+
+# Déclaration du volume pour la persistance des données
+volumes:
+  db_data:

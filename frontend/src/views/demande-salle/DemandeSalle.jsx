@@ -29,15 +29,21 @@ const DemandeSalle = () => {
   });
 
   const [files, setFiles] = useState({
-    doc1: null, doc3: null, doc4: null, doc5: null, doc6: null, doc7: null, 
+    doc1: [], doc3: null, doc4: null, doc5: null, doc6: null, doc7: null, 
     idPres: null, 
     idMembre1: null, idMembre2: null, idMembre3: null 
   });
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFileChange = (e, key) => {
-    setFiles({ ...files, [key]: e.target.files[0] });
+const handleFileChange = (e, key) => {
+    if (e.target.multiple) {
+      // Si l'input a l'attribut "multiple", on stocke tous les fichiers sous forme de tableau
+      setFiles({ ...files, [key]: Array.from(e.target.files) });
+    } else {
+      // Sinon, on garde le comportement par défaut (1 seul fichier)
+      setFiles({ ...files, [key]: e.target.files[0] });
+    }
   };
 
   const handleChange = (e) => {
@@ -65,7 +71,7 @@ const activitesArabe = [
     });
 
     try {
-      const response = await axios.post('http://localhost:8080/api/documents/generer-pdf', submitData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/documents/generer-pdf`, submitData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'blob'
       });
@@ -129,7 +135,7 @@ const activitesArabe = [
 </CCol>
                 <CCol md={12} className="mb-3">
                   <label className="form-label">Adresse / العنوان</label>
-                  <CFormInput name="adresse" value={formData.adresse} onChange={handleChange} required />
+                  <CFormInput name="adresse" value={formData.adresse} onChange={handleChange} />
                 </CCol>
 
                 {/* Dates et Heures */}
@@ -199,7 +205,7 @@ const activitesArabe = [
                   <hr />
                   <CRow>
                     <CCol md={6} className="mb-3">
-                      <CFormInput type="file" label="Loi fondamentale de l'association / قانون أساسي للجمعية" onChange={(e) => handleFileChange(e, 'doc1')} accept=".pdf,.doc,.docx,.jpg,.png" />
+                      <CFormInput type="file" label="Loi fondamentale de l'association / قانون أساسي للجمعية" multiple onChange={(e) => handleFileChange(e, 'doc1')} accept=".pdf,.doc,.docx,.jpg,.png" />
                     </CCol>
 
                     {/* Affichage conditionnel des cartes d'identité */}
@@ -222,7 +228,7 @@ const activitesArabe = [
                     )}
 
                     <CCol md={6} className="mb-3">
-                      <CFormInput type="file" label="Récépissé définitif de l'association / الوصل النهائي للجمعية" onChange={(e) => handleFileChange(e, 'doc3')} accept=".pdf,.doc,.docx,.jpg,.png" />
+                      <CFormInput type="file" label="Récépissé définitif de l'association / الوصل النهائي أو المؤقت للجمعية" onChange={(e) => handleFileChange(e, 'doc3')} accept=".pdf,.doc,.docx,.jpg,.png" />
                     </CCol>
                     <CCol md={6} className="mb-3">
                       <CFormInput type="file" label="Récépissé du registre du commerce / وصل السجل التجاري" onChange={(e) => handleFileChange(e, 'doc4')} accept=".pdf,.doc,.docx,.jpg,.png" />

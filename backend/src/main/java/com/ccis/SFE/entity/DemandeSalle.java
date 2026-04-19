@@ -8,8 +8,6 @@ import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import org.jspecify.annotations.Nullable;
-
 @Entity
 @Table(name = "demande_salle")
 public class DemandeSalle {

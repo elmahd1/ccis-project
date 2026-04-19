@@ -38,7 +38,7 @@ const ListeAssociations = () => {
 
   const fetchAssociations = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/demandes/liste');
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/demandes/liste`);
       setAssociations(response.data);
     } catch (error) {
       console.error("Erreur de récupération", error);

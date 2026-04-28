@@ -33,6 +33,9 @@ import {
   CNavLink,
   CNavItem,
   useColorModes,
+  CForm, 
+  CFormInput,
+  CButton,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
@@ -47,7 +50,7 @@ import {
 
 import { AppBreadcrumb } from './index'
 import { AppHeaderDropdown } from './header/index'
-
+import { useAuth } from '../context/AuthContext' // <-- 1. IMPORT YOUR AUTH CONTEXT
 /**
  * AppHeader functional component
  *
@@ -62,7 +65,7 @@ import { AppHeaderDropdown } from './header/index'
 const AppHeader = () => {
   const headerRef = useRef()
   const { colorMode, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
-
+const { isAdmin } = useAuth() // <-- 2. GET ADMIN STATUS
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
@@ -86,18 +89,18 @@ const AppHeader = () => {
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
         <CHeaderNav className="d-none d-md-flex">
-          <CNavItem>
-            <CNavLink to="/dashboard" as={NavLink}>
-              Dashboard
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">Users</CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">Settings</CNavLink>
-          </CNavItem>
+          {isAdmin && ( 
+          <><CNavItem>
+              <CNavLink to="/dashboard" as={NavLink}>
+                Dashboard
+              </CNavLink>
+            </CNavItem><CNavItem>
+                <CNavLink href="#">Users</CNavLink>
+              </CNavItem><CNavItem>
+                <CNavLink href="#">Settings</CNavLink>
+              </CNavItem></>)}
         </CHeaderNav>
+        
         <CHeaderNav className="ms-auto">
           <CNavItem>
             <CNavLink href="#">

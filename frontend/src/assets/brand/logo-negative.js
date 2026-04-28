@@ -1,0 +1,1 @@
+export const logoNegative = "https://coreui.io/images/brand/coreui-signet-white.svg";

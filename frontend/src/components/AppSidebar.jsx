@@ -1,66 +1,58 @@
-/**
- * AppSidebar Component
- *
- * Collapsible navigation sidebar with branding, menu items, and toggle controls.
- *
- * Features:
- * - Redux-controlled visibility state
- * - Unfoldable/narrow mode for more screen space
- * - Brand logo with full and narrow variants
- * - Close button for mobile devices
- * - Footer with toggle button
- * - Dark color scheme
- * - Fixed positioning
- *
- * @component
- * @example
- * return (
- *   <AppSidebar />
- * )
- */
-
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-
-import {
-  CCloseButton,
-  CSidebar,
-  CSidebarBrand,
-  CSidebarFooter,
-  CSidebarHeader,
-  CSidebarToggler,
-} from '@coreui/react'
-import CIcon from '@coreui/icons-react'
-
+import { CSidebar, CSidebarBrand, CSidebarNav, CSidebarToggler } from '@coreui/react'
 import { AppSidebarNav } from './AppSidebarNav'
+import { logoNegative } from '../assets/brand/logo-negative'
+import { sygnet } from '../assets/brand/sygnet'
+import SimpleBar from 'simplebar-react'
+import 'simplebar/dist/simplebar.min.css'
+import { navClient, navEmployee, navAdmin } from '../_nav'
+import { useAuth } from '../context/AuthContext'
 
-import { logo } from 'src/assets/brand/logo'
-import { sygnet } from 'src/assets/brand/sygnet'
 
-// sidebar nav config
-import navigation from '../_nav'
 
-/**
- * AppSidebar functional component
- *
- * Manages sidebar state with Redux:
- * - sidebarShow: Controls sidebar visibility
- * - sidebarUnfoldable: Controls narrow/wide mode
- *
- * Renders navigation from _nav.js configuration file.
- * Memoized to prevent unnecessary re-renders.
- *
- * @returns {React.ReactElement} Sidebar with navigation
- */
 const AppSidebar = () => {
   const dispatch = useDispatch()
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
   const sidebarShow = useSelector((state) => state.sidebarShow)
+  const { user, isAdmin } = useAuth() 
+
+  const isClient = user?.role === 'ROLE_CLIENT' 
+  let navigation = undefined;
+  switch (user?.role) {
+    case 'ROLE_CLIENT':
+      navigation = navClient
+      break
+    case 'ROLE_EMPLOYEE':
+
+    case 'ROLE_ADMIN':
+      navigation = navAdmin
+      break
+    default:
+      navigation = navClient;
+  }
+// 3. FILTER THE NAVIGATION AND CLEAN PROPS
+  const filteredNav = navigation
+    .filter((item) => {
+      if (item.adminOnly) return isAdmin;
+      return true;
+    })
+    .map((item) => {
+      // Destructure to remove 'adminOnly' so React doesn't complain
+      const { adminOnly, ...cleanItem } = item;
+      
+      // Do the exact same thing for nested sub-menus
+      if (cleanItem.items) {
+        cleanItem.items = cleanItem.items
+          .filter((subItem) => subItem.adminOnly ? isAdmin : true)
+          .map(({ adminOnly, ...cleanSubItem }) => cleanSubItem);
+      }
+      
+      return cleanItem;
+    });
 
   return (
     <CSidebar
-      className="border-end"
-      colorScheme="dark"
       position="fixed"
       unfoldable={unfoldable}
       visible={sidebarShow}
@@ -68,23 +60,19 @@ const AppSidebar = () => {
         dispatch({ type: 'set', sidebarShow: visible })
       }}
     >
-      <CSidebarHeader className="border-bottom">
-        <CSidebarBrand to="/">
-          <CIcon customClassName="sidebar-brand-full" icon={logo} height={32} />
-          <CIcon customClassName="sidebar-brand-narrow" icon={sygnet} height={32} />
-        </CSidebarBrand>
-        <CCloseButton
-          className="d-lg-none"
-          dark
-          onClick={() => dispatch({ type: 'set', sidebarShow: false })}
-        />
-      </CSidebarHeader>
-      <AppSidebarNav items={navigation} />
-      <CSidebarFooter className="border-top d-none d-lg-flex">
-        <CSidebarToggler
-          onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
-        />
-      </CSidebarFooter>
+      <CSidebarBrand className="d-none d-md-flex" to="/">
+        <img src={logoNegative} height={35} alt="Logo" />
+      </CSidebarBrand>
+      <CSidebarNav items={navigation}>
+        <SimpleBar>
+          {/* 4. PASS THE FILTERED LIST TO THE NAV */}
+          <AppSidebarNav items={filteredNav} />
+        </SimpleBar>
+      </CSidebarNav>
+      <CSidebarToggler
+        className="d-none d-lg-flex"
+        onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
+      />
     </CSidebar>
   )
 }

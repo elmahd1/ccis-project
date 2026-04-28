@@ -1,0 +1,1 @@
+export const sygnet = "https://coreui.io/images/brand/coreui-signet-white.svg";

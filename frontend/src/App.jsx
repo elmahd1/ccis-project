@@ -21,7 +21,33 @@ import { useSelector } from 'react-redux'
 import { CSpinner, useColorModes } from '@coreui/react'
 import './scss/style.scss'
 
-// We use those styles to show code examples, you should remove them in your application.
+
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div className="pt-3 text-center"><CSpinner color="primary" variant="grow" /></div>;
+  }
+
+  // 1. Not logged in at all
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // 2. Logged in, but trying to access a route they don't have permission for
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // If client tries to access employee page, send back to client home
+    if (user.role === 'ROLE_CLIENT') return <Navigate to="/client/workspaces" replace />;
+    // If employee tries to access client page, send back to dashboard
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+};
 import './scss/examples.scss'
 
 // Containers
@@ -87,7 +113,15 @@ const App = () => {
           <Route exact path="/register" name="Register Page" element={<Register />} />
           <Route exact path="/404" name="Page 404" element={<Page404 />} />
           <Route exact path="/500" name="Page 500" element={<Page500 />} />
-          <Route path="*" name="Home" element={<DefaultLayout />} />
+          <Route
+            path="*"
+            name="Home"
+            element={
+              <ProtectedRoute>
+                <DefaultLayout />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Suspense>
     </HashRouter>

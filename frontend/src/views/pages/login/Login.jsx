@@ -1,5 +1,5 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CButton,
   CCard,
@@ -12,27 +12,70 @@ import {
   CInputGroup,
   CInputGroupText,
   CRow,
+  CAlert,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
+import axiosInstance from '../../../api/axiosInstance' // Import your axios instance
+import { useAuth } from '../../../context/AuthContext' // Import your auth hook
 
 const Login = () => {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
+  
+  const { login } = useAuth()
+
+  const handleLogin = async (e) => {
+    e.preventDefault() 
+    setError('')
+
+    try {
+      // Use axiosInstance instead of fetch
+      const response = await axiosInstance.post('/auth/login', { username, password })
+      
+      // Pass the token to your context's login function
+      login(response.data.token)
+      
+      // Redirect to dashboard
+      navigate('/dashboard') 
+      
+    } catch (err) {
+      if (err.response && err.response.status === 401) {
+        // FIXED: Using double quotes here to avoid escaping issues with the apostrophe
+        setError("Nom d'utilisateur ou mot de passe incorrect")
+      } else {
+        setError("Erreur réseau. Le serveur est-il allumé ?")
+      }
+    }
+  }
+
   return (
-    <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+    <div className="bg-light min-vh-100 d-flex flex-row align-items-center">
       <CContainer>
         <CRow className="justify-content-center">
           <CCol md={8}>
             <CCardGroup>
               <CCard className="p-4">
                 <CCardBody>
-                  <CForm>
+                  <CForm onSubmit={handleLogin}>
                     <h1>Login</h1>
-                    <p className="text-body-secondary">Sign In to your account</p>
+                    <p className="text-medium-emphasis">Connectez-vous à votre compte</p>
+                    
+                    {error && <CAlert color="danger">{error}</CAlert>}
+                    
                     <CInputGroup className="mb-3">
                       <CInputGroupText>
                         <CIcon icon={cilUser} />
                       </CInputGroupText>
-                      <CFormInput placeholder="Username" autoComplete="username" />
+                      <CFormInput 
+                        placeholder="Username" 
+                        autoComplete="username" 
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                      />
                     </CInputGroup>
                     <CInputGroup className="mb-4">
                       <CInputGroupText>
@@ -42,11 +85,15 @@ const Login = () => {
                         type="password"
                         placeholder="Password"
                         autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
                       />
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        <CButton color="primary" className="px-4">
+                        {/* Make sure type="submit" so the form submits on Enter */}
+                        <CButton type="submit" color="primary" className="px-4">
                           Login
                         </CButton>
                       </CCol>
@@ -64,8 +111,7 @@ const Login = () => {
                   <div>
                     <h2>Sign up</h2>
                     <p>
-                      Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-                      tempor incididunt ut labore et dolore magna aliqua.
+                      Don't have an account yet? Register now to access our platform.
                     </p>
                     <Link to="/register">
                       <CButton color="primary" className="mt-3" active tabIndex={-1}>

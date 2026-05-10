@@ -17,4 +17,5 @@ public interface DemandeSalleRepository extends JpaRepository<DemandeSalle, Long
 
     // Get all requests submitted by a specific user
     List<DemandeSalle> findBySubmittedById(Long userId);
+    
 }

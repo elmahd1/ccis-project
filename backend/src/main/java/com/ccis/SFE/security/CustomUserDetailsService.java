@@ -1,5 +1,4 @@
 package com.ccis.SFE.security;
-
 import com.ccis.SFE.entity.User;
 import com.ccis.SFE.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,15 +15,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername()) // 🛑 THE FIX: Changed from withUserDetails to withUsername
-                .password(user.getPassword())
-                .authorities(user.getRole()) 
-                .build();
-    }
+@Override
+public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    return new CustomUserDetails(user); // Wrap it
+}
 }

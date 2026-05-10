@@ -14,6 +14,13 @@ import {
   CButton,
   CBadge,
   CSpinner,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CModalFooter,
+  CFormInput,
+
   CAlert
 } from '@coreui/react'
 import axiosInstance from '../../api/axiosInstance'
@@ -22,6 +29,29 @@ const ManageUsersPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+// Employee accounts creation
+const [visible, setVisible] = useState(false);
+const [submitting, setSubmitting] = useState(false);
+const [newEmployee, setNewEmployee] = useState({
+  username: '',
+  email: '',
+  password: '',
+  fullName: '' // Assuming your User entity has this
+});
+
+const handleCreateEmployee = async () => {
+  try {
+    setSubmitting(true);
+    await axiosInstance.post('/users/create-employee', newEmployee);
+    setVisible(false); // Close modal
+    setNewEmployee({ username: '', email: '', password: '', fullName: '' }); // Reset
+    fetchUsers(); // Refresh the table
+  } catch (err) {
+    alert(err.response?.data || "Failed to create employee");
+  } finally {
+    setSubmitting(false);
+  }
+};
   // Fetch users when the page loads
   useEffect(() => {
     fetchUsers()
@@ -31,8 +61,9 @@ const ManageUsersPage = () => {
     try {
       setLoading(true)
       // Calls the backend to get all users
-      const response = await axiosInstance.get('/users')
+const response = await axiosInstance.get('/users/all')
       setUsers(response.data)
+      console.log("Fetched users:", response.data) // Debug log
       setError('')
     } catch (err) {
       setError('Failed to fetch users. Ensure you have Admin privileges.')
@@ -59,8 +90,11 @@ const ManageUsersPage = () => {
     <CRow>
       <CCol xs={12}>
         <CCard className="mb-4">
-          <CCardHeader>
+          <CCardHeader className="d-flex justify-content-between align-items-center">
             <strong>Manage Users</strong> <small>Admin Dashboard</small>
+              <CButton color="primary" onClick={() => setVisible(true)}>
+              + Add Employee
+              </CButton>
           </CCardHeader>
           <CCardBody>
             {error && <CAlert color="danger">{error}</CAlert>}
@@ -84,11 +118,15 @@ const ManageUsersPage = () => {
                       <CTableDataCell>{user.id}</CTableDataCell>
                       <CTableDataCell>{user.username}</CTableDataCell>
                       <CTableDataCell>{user.email}</CTableDataCell>
-                      <CTableDataCell>
-                        <CBadge color={user.role === 'ROLE_ADMIN' ? 'danger' : 'info'}>
-                          {user.role === 'ROLE_ADMIN' ? 'Admin' : 'User'}
-                        </CBadge>
-                      </CTableDataCell>
+<CTableDataCell>
+  <CBadge color={
+    user.role === 'ROLE_ADMIN' ? 'danger' : 
+    user.role === 'ROLE_EMPLOYEE' ? 'success' : 'info'
+  }>
+    {user.role === 'ROLE_ADMIN' ? 'Admin' : 
+     user.role === 'ROLE_EMPLOYEE' ? 'Employé' : 'Client'}
+  </CBadge>
+</CTableDataCell>
                       <CTableDataCell>
                         <CButton 
                           color="danger" 
@@ -114,6 +152,42 @@ const ManageUsersPage = () => {
             )}
           </CCardBody>
         </CCard>
+        <CModal visible={visible} onClose={() => setVisible(false)}>
+  <CModalHeader>
+    <CModalTitle>Create Employee Account</CModalTitle>
+  </CModalHeader>
+  <CModalBody>
+    <div className="mb-3">
+      <CFormInput 
+        label="Username"
+        value={newEmployee.username}
+        onChange={(e) => setNewEmployee({...newEmployee, username: e.target.value})}
+      />
+    </div>
+    <div className="mb-3">
+      <CFormInput 
+        type="email"
+        label="Email"
+        value={newEmployee.email}
+        onChange={(e) => setNewEmployee({...newEmployee, email: e.target.value})}
+      />
+    </div>
+    <div className="mb-3">
+      <CFormInput 
+        type="password"
+        label="Temporary Password"
+        value={newEmployee.password}
+        onChange={(e) => setNewEmployee({...newEmployee, password: e.target.value})}
+      />
+    </div>
+  </CModalBody>
+  <CModalFooter>
+    <CButton color="secondary" onClick={() => setVisible(false)}>Cancel</CButton>
+    <CButton color="primary" onClick={handleCreateEmployee} disabled={submitting}>
+      {submitting ? <CSpinner size="sm"/> : "Create Account"}
+    </CButton>
+  </CModalFooter>
+</CModal>
       </CCol>
     </CRow>
   )

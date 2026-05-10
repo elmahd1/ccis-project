@@ -23,7 +23,7 @@ const OrganizationDirectory = () => {
     try {
       setIsLoading(true);
       // Backend should fetch a master list of all organizations
-      const response = await axiosInstance.get('/api/organizations/all'); 
+      const response = await axiosInstance.get(`/organizations/all`); 
       setOrganizations(response.data);
     } catch (error) {
       console.error("Erreur lors de la récupération de l'annuaire:", error);
@@ -35,7 +35,7 @@ const OrganizationDirectory = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Supprimer cette organisation retirera également tous ses historiques. Continuer ?")) {
       try {
-        await axiosInstance.delete(`/api/organizations/${id}`);
+        await axiosInstance.delete(`/organizations/${id}`);
         setOrganizations(organizations.filter(item => item.id !== id));
       } catch (error) {
         alert("Erreur lors de la suppression.");

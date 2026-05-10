@@ -5,6 +5,8 @@ import com.ccis.SFE.dto.LoginRequest;
 import com.ccis.SFE.dto.SignupRequest;
 import com.ccis.SFE.entity.User;
 import com.ccis.SFE.repository.UserRepository;
+import com.ccis.SFE.security.JwtUtil.JwtUtil;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,11 +21,10 @@ public class AuthController {
     private UserRepository userRepository;
     
     @Autowired
-    private com.ccis.SFE.security.JwtUtil.JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-        // Find the user in the database
         User user = userRepository.findByUsername(loginRequest.getUsername())
                 .orElse(null);
 
@@ -31,17 +32,14 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Erreur: Utilisateur non trouvé.");
         }
 
-        // 🛑 THE FIX: Convert your database 'User' into Spring Security's 'UserDetails'
         UserDetails userDetails = org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(user.getRole())
                 .build();
 
-        // Now we can safely pass the userDetails to generate the token!
         String realToken = jwtUtil.generateToken(userDetails);
 
-        // Return the real token to the frontend
         return ResponseEntity.ok(new JwtResponse(
                 realToken, 
                 user.getId(), 
@@ -52,21 +50,19 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody SignupRequest signUpRequest) {
-        // 1. Check if email exists
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
-        // 2. Create the user object. Default role is ROLE_CLIENT for public signups.
-        User user = new User(
-                signUpRequest.getUsername(), 
-                "encrypted_password_here", // Use PasswordEncoder!
-                signUpRequest.getEmail(), 
-                "ROLE_CLIENT" 
-        );
+        // Use Setters since the User class didn't show a constructor
+        User user = new User();
+        user.setUsername(signUpRequest.getUsername());
+        // In a real app, use: passwordEncoder.encode(signUpRequest.getPassword())
+        user.setPassword(signUpRequest.getPassword()); 
+        user.setEmail(signUpRequest.getEmail());
+        user.setRole("ROLE_CLIENT"); 
 
         userRepository.save(user);
-
         return ResponseEntity.ok("User registered successfully!");
     }
 }

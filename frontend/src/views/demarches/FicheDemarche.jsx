@@ -47,7 +47,7 @@ const FicheDemarche = () => {
 
     try {
       await axiosInstance.post(
-        `/api/client/demandes/administrative?userId=${user?.id || 1}&orgId=${orgId}`, 
+        `/client/demandes/administrative?userId=${user?.id || 1}&orgId=${orgId}`, 
         formData
       );
       setSuccess(true);

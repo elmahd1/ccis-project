@@ -3,7 +3,10 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import com.ccis.SFE.entity.User;
+import com.ccis.SFE.repository.UserRepository;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -20,30 +23,44 @@ public class JwtUtil {
     // In a real application, inject this from application.properties
     // Must be at least 256 bits (32 characters) long for HS256
     private final String SECRET_KEY = "my_super_secret_key_which_must_be_very_long_and_secure";
-    private final long JWT_EXPIRATION_MS = 86400000; // 24 hours
+    private final long JWT_EXPIRATION_MS = 86400000; 
+    
+    @Autowired
+    private UserRepository userRepository; // Add this
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
-
-public String generateToken(UserDetails userDetails) {
-    Map<String, Object> claims = new HashMap<>();
     
-    // Extract the role from UserDetails and put it in the token
-    String role = userDetails.getAuthorities().stream()
-            .map(GrantedAuthority::getAuthority)
-            .findFirst()
-            .orElse("ROLE_USER");
-    claims.put("role", role);
-
-    return Jwts.builder()
-            .setClaims(claims)
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
-            .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-            .compact();
-}
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        
+        String role = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .findFirst()
+                .orElse("ROLE_USER");
+        claims.put("role", role);
+        
+        // Fetch the actual user from database to get the ID
+        try {
+            User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+            if (user != null) {
+                claims.put("id", user.getId());
+                System.out.println("Added ID from database: " + user.getId());
+            }
+        } catch (Exception e) {
+            System.out.println("Could not fetch user ID: " + e.getMessage());
+        }
+        
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+    
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

@@ -44,7 +44,7 @@ public class OrganizationController {
     }
 
     // 2. Get all organizations a specific user has access to
-    @GetMapping("/my-workspaces/{userId}")
+    @GetMapping("/user/{userId}")
     public ResponseEntity<List<Organization>> getUserOrganizations(@PathVariable Long userId) {
         List<UserOrganizationRole> roles = roleRepository.findByUserId(userId);
         
@@ -53,5 +53,17 @@ public class OrganizationController {
                 .collect(Collectors.toList());
                 
         return ResponseEntity.ok(userOrgs);
+    }
+    @GetMapping("/all")
+    public ResponseEntity<List<Organization>> getAllOrganizations() {
+        List<Organization> organizations = orgRepository.findAll();
+        return ResponseEntity.ok(organizations);
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteOrganization(@PathVariable Long id) {
+        return orgRepository.findById(id).map(org -> {
+            orgRepository.delete(org);
+            return ResponseEntity.ok().build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

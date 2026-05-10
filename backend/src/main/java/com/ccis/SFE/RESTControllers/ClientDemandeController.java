@@ -3,6 +3,7 @@ package com.ccis.SFE.RESTControllers;
 import com.ccis.SFE.entity.*;
 import com.ccis.SFE.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,47 +21,57 @@ public class ClientDemandeController {
     @Autowired private OrganizationRepository orgRepo;
     @Autowired private UserRepository userRepo;
 
-    // --- 1. SOUMETTRE LES DEMANDES ---
-
     @PostMapping("/administrative")
     public ResponseEntity<?> submitDemarche(@RequestParam Long userId, @RequestParam Long orgId, @RequestBody DemarcheAdministrative demarche) {
-        User user = userRepo.findById(userId).orElseThrow();
-        Organization org = orgRepo.findById(orgId).orElseThrow();
-        demarche.setSubmittedBy(user);
-        demarche.setOrganization(org);
-        demarche.setStatus(DemarcheAdministrative.DemandeStatus.EN_ATTENTE);
-        return ResponseEntity.ok(demarcheRepo.save(demarche));
+        return userRepo.findById(userId).map(user -> 
+            orgRepo.findById(orgId).map(org -> {
+                demarche.setSubmittedBy(user);
+                demarche.setOrganization(org);
+                demarche.setStatus(BaseDemande.DemandeStatus.EN_ATTENTE);
+                return ResponseEntity.status(HttpStatus.CREATED).body(demarcheRepo.save(demarche));
+            }).orElse(ResponseEntity.notFound().build())
+        ).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/espace")
     public ResponseEntity<?> submitEspace(@RequestParam Long userId, @RequestParam Long orgId, @RequestBody EspaceEntreprise espace) {
-        User user = userRepo.findById(userId).orElseThrow();
-        Organization org = orgRepo.findById(orgId).orElseThrow();
-        espace.setSubmittedBy(user);
-        espace.setOrganization(org);
-        espace.setStatus(EspaceEntreprise.DemandeStatus.EN_ATTENTE);
-        return ResponseEntity.ok(espaceRepo.save(espace));
+        return userRepo.findById(userId).map(user -> 
+            orgRepo.findById(orgId).map(org -> {
+                espace.setSubmittedBy(user);
+                espace.setOrganization(org);
+                espace.setStatus(BaseDemande.DemandeStatus.EN_ATTENTE);
+                return ResponseEntity.status(HttpStatus.CREATED).body(espaceRepo.save(espace));
+            }).orElse(ResponseEntity.notFound().build())
+        ).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/salle")
     public ResponseEntity<?> submitSalle(@RequestParam Long userId, @RequestParam Long orgId, @RequestBody DemandeSalle salle) {
-        User user = userRepo.findById(userId).orElseThrow();
-        Organization org = orgRepo.findById(orgId).orElseThrow();
-        salle.setSubmittedBy(user);
-        salle.setOrganization(org);
-        salle.setStatus(DemandeSalle.DemandeStatus.EN_ATTENTE);
-        return ResponseEntity.ok(salleRepo.save(salle));
+        return userRepo.findById(userId).map(user -> 
+            orgRepo.findById(orgId).map(org -> {
+                salle.setSubmittedBy(user);
+                salle.setOrganization(org);
+                salle.setStatus(BaseDemande.DemandeStatus.EN_ATTENTE);
+                return ResponseEntity.status(HttpStatus.CREATED).body(salleRepo.save(salle));
+            }).orElse(ResponseEntity.notFound().build())
+        ).orElse(ResponseEntity.notFound().build());
     }
-
-    // --- 2. HISTORIQUE GLOBAL POUR LE DASHBOARD CLIENT ---
     
     @GetMapping("/history/{orgId}")
     public ResponseEntity<Map<String, Object>> getFullHistory(@PathVariable Long orgId) {
-        // We combine all history into one response for the Client Dashboard
         Map<String, Object> history = new HashMap<>();
         history.put("demarches", demarcheRepo.findByOrganizationId(orgId));
         history.put("espaces", espaceRepo.findByOrganizationId(orgId));
         history.put("salles", salleRepo.findByOrganizationId(orgId));
+        return ResponseEntity.ok(history);
+    }
+
+    @GetMapping("/history/user/{userId}")
+    public ResponseEntity<Map<String, Object>> getUserFullHistory(@PathVariable Long userId) {
+        Map<String, Object> history = new HashMap<>();
+        history.put("demarches", demarcheRepo.findBySubmittedById(userId));
+        history.put("espaces", espaceRepo.findBySubmittedById(userId));
+        history.put("salles", salleRepo.findBySubmittedById(userId));
         return ResponseEntity.ok(history);
     }
 }

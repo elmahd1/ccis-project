@@ -56,16 +56,16 @@ const DemandeSalle = () => {
       // 1. Submit the JSON data first
       // Note: Make sure you have this endpoint in your ClientDemandeController!
       const response = await axiosInstance.post(
-        `/api/client/demandes/salle?userId=${user?.id || 1}&orgId=${orgId}`, 
+        `/client/demandes/salle?userId=${user?.id || 1}&orgId=${orgId}`, 
         formData
       );
 
       const newDemandeId = response.data.id;
 
       // 2. Upload Files (If you have a file upload endpoint configured)
-      // const formDataFiles = new FormData();
-      // Object.keys(files).forEach(key => formDataFiles.append('files', files[key]));
-      // await axiosInstance.post(`/api/client/demandes/salle/${newDemandeId}/upload`, formDataFiles);
+      const formDataFiles = new FormData();
+      Object.keys(files).forEach(key => formDataFiles.append('files', files[key]));
+      await axiosInstance.post(`/client/demandes/salle/${newDemandeId}/upload`, formDataFiles);
 
       setSuccess(true);
       setTimeout(() => navigate(`/client/workspace/${orgId}`), 3000); // Go back to dashboard after 3s

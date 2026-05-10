@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   CRow, CCol, CCard, CCardBody, CCardTitle, CCardText, CButton,
   CSpinner, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
-  CFormInput, CFormSelect, CBadge
+  CFormInput, CFormSelect, CBadge, CTable, CTableHead, CTableRow, CTableHeaderCell, 
+  CTableBody, CTableDataCell
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilPlus, cilBuilding, cilArrowRight, cilBriefcase, cilInstitution } from '@coreui/icons';
@@ -18,8 +19,18 @@ const Workspaces = () => {
   
   const [visible, setVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newOrg, setNewOrg] = useState({ name: '', type: 'ENTREPRISE' });
 
+const [newOrg, setNewOrg] = useState({ 
+  name: '', 
+  type: 'ENTREPRISE',
+  ice: '',
+  formeJuridique: '',
+  secteurActivite: '',
+  adresse: '',
+  ville: '',
+  telGsm: '',
+  emailContact: ''
+});
   useEffect(() => {
     fetchWorkspaces();
   }, []);
@@ -27,7 +38,8 @@ const Workspaces = () => {
   const fetchWorkspaces = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(`/api/organizations/my-workspaces/${user?.id || 1}`);
+      const response = await axiosInstance.get(`/organizations/${user?.id}`);
+      console.log("id", user?.id);
       setWorkspaces(response.data);
     } catch (error) {
       console.error("Erreur lors de la récupération des espaces", error);
@@ -39,7 +51,7 @@ const Workspaces = () => {
   const handleCreateWorkspace = async () => {
     setIsSubmitting(true);
     try {
-      await axiosInstance.post(`/api/organizations/create?userId=${user?.id || 1}`, newOrg);
+      await axiosInstance.post(`/organizations/create?userId=${user?.id}`, newOrg);
       setVisible(false);
       setNewOrg({ name: '', type: 'ENTREPRISE' });
       fetchWorkspaces();
@@ -96,27 +108,34 @@ const Workspaces = () => {
         <CModalHeader onClose={() => setVisible(false)}>
           <CModalTitle>Nouvelle Organisation</CModalTitle>
         </CModalHeader>
-        <CModalBody>
-          <div className="mb-3">
-            <CFormInput 
-              label="Nom de l'organisation" 
-              value={newOrg.name}
-              onChange={(e) => setNewOrg({...newOrg, name: e.target.value})}
-              placeholder="Ex: Mon Entreprise SARL"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <CFormSelect 
-              label="Type d'organisation"
-              value={newOrg.type}
-              onChange={(e) => setNewOrg({...newOrg, type: e.target.value})}
-            >
-              <option value="ENTREPRISE">Entreprise</option>
-              <option value="ASSOCIATION">Association / Coopérative</option>
-            </CFormSelect>
-          </div>
-        </CModalBody>
+       <CModalBody>
+  <CRow>
+    <CCol md={6} className="mb-3">
+      <CFormInput label="Nom" value={newOrg.name} onChange={(e) => setNewOrg({...newOrg, name: e.target.value})} required />
+    </CCol>
+    <CCol md={6} className="mb-3">
+      <CFormSelect label="Type" value={newOrg.type} onChange={(e) => setNewOrg({...newOrg, type: e.target.value})}>
+        <option value="ENTREPRISE">Entreprise</option>
+        <option value="ASSOCIATION">Association</option>
+      </CFormSelect>
+    </CCol>
+    <CCol md={6} className="mb-3">
+      <CFormInput label="ICE (Identifiant Commun)" value={newOrg.ice} onChange={(e) => setNewOrg({...newOrg, ice: e.target.value})} />
+    </CCol>
+    <CCol md={6} className="mb-3">
+      <CFormInput label="Forme Juridique (SARL, etc.)" value={newOrg.formeJuridique} onChange={(e) => setNewOrg({...newOrg, formeJuridique: e.target.value})} />
+    </CCol>
+    <CCol md={12} className="mb-3">
+      <CFormInput label="Adresse Siège" value={newOrg.adresse} onChange={(e) => setNewOrg({...newOrg, adresse: e.target.value})} />
+    </CCol>
+    <CCol md={6} className="mb-3">
+      <CFormInput label="Téléphone GSM" value={newOrg.telGsm} onChange={(e) => setNewOrg({...newOrg, telGsm: e.target.value})} />
+    </CCol>
+    <CCol md={6} className="mb-3">
+      <CFormInput label="Email Contact" type="email" value={newOrg.emailContact} onChange={(e) => setNewOrg({...newOrg, emailContact: e.target.value})} />
+    </CCol>
+  </CRow>
+</CModalBody>
         <CModalFooter>
           <CButton color="secondary" variant="ghost" onClick={() => setVisible(false)}>Annuler</CButton>
           <CButton color="primary" onClick={handleCreateWorkspace} disabled={isSubmitting || !newOrg.name}>

@@ -8,14 +8,15 @@ import SimpleBar from 'simplebar-react'
 import 'simplebar/dist/simplebar.min.css'
 import { navClient, navEmployee, navAdmin } from '../_nav'
 import { useAuth } from '../context/AuthContext'
-
+import CIcon from '@coreui/icons-react'
+import { cilAccountLogout } from '@coreui/icons'
 
 
 const AppSidebar = () => {
   const dispatch = useDispatch()
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
   const sidebarShow = useSelector((state) => state.sidebarShow)
-  const { user, isAdmin } = useAuth() 
+  const { user, isAdmin, logout } = useAuth() 
 
   const isClient = user?.role === 'ROLE_CLIENT' 
   let navigation = undefined;
@@ -24,7 +25,8 @@ const AppSidebar = () => {
       navigation = navClient
       break
     case 'ROLE_EMPLOYEE':
-
+navigation = navEmployee
+      break
     case 'ROLE_ADMIN':
       navigation = navAdmin
       break
@@ -68,6 +70,11 @@ const AppSidebar = () => {
           {/* 4. PASS THE FILTERED LIST TO THE NAV */}
           <AppSidebarNav items={filteredNav} />
         </SimpleBar>
+<div className="nav-item mt-auto">
+      <a className="nav-link text-danger" style={{ cursor: 'pointer' }} onClick={logout}>
+         <CIcon icon={cilAccountLogout} className="nav-icon" /> Déconnexion
+      </a>
+    </div>
       </CSidebarNav>
       <CSidebarToggler
         className="d-none d-lg-flex"

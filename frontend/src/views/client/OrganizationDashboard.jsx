@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   CRow, CCol, CCard, CCardBody, CCardTitle, CCardText, CButton,
-  CSpinner, CBadge, CTable, CTableHead, CTableRow, CTableHeaderCell, CTableBody, CTableDataCell
+  CSpinner, CBadge, CTable, CTableHead, CTableRow, CTableHeaderCell, 
+  CTableBody, CTableDataCell, CCardHeader
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilBriefcase, cilInstitution, cilFile, cilArrowLeft, cilDescription } from '@coreui/icons';
+import { 
+  cilBriefcase, cilInstitution, cilFile, 
+  cilArrowLeft, cilDescription, cilHistory 
+} from '@coreui/icons';
 import axiosInstance from '../../api/axiosInstance';
-
+import { useAuth } from '../../context/AuthContext';
+import { cilBuilding } from '@coreui/icons';
 const OrganizationDashboard = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This is the orgId
   const navigate = useNavigate();
   const [organization, setOrganization] = useState(null);
-  const [history, setHistory] = useState([]);
+  const [recentHistory, setRecentHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,110 +27,147 @@ const OrganizationDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const orgResponse = await axiosInstance.get(`/api/organizations/${id}`);
+      // 1. Fetch Organization Details
+      const orgResponse = await axiosInstance.get(`/organizations/${id}`);
       setOrganization(orgResponse.data);
 
-      // Fetch combined history for this organization
-      const historyResponse = await axiosInstance.get(`/api/client/demandes/history/${id}`);
-      setHistory(historyResponse.data);
+      // 2. Fetch History for this specific Org
+      const historyResponse = await axiosInstance.get(`/client/demandes/history/${id}`);
+      const data = historyResponse.data;
+
+      // Combine and sort to get the 5 most recent
+      const combined = [
+        ...(data.demarches || []).map(d => ({ ...d, typeLabel: 'Démarche Admin' })),
+        ...(data.espaces || []).map(e => ({ ...e, typeLabel: 'Espace Entreprise' })),
+        ...(data.salles || []).map(s => ({ ...s, typeLabel: 'Location Salle' }))
+      ].sort((a, b) => new Date(b.createdAt || b.dateDepot) - new Date(a.createdAt || a.dateDepot));
+
+      setRecentHistory(combined.slice(0, 5)); // Only keep the 5 newest
     } catch (error) {
-      console.error("Erreur lors du chargement du dashboard", error);
+      console.error("Erreur lors du chargement du tableau de bord:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'VALIDE': return <CBadge color="success">Validé</CBadge>;
+    switch (status) {
+      case 'VALIDE': return <CBadge color="success">Validée</CBadge>;
+      case 'REJETE': return <CBadge color="danger">Rejetée</CBadge>;
       case 'EN_ATTENTE': return <CBadge color="warning">En attente</CBadge>;
-      case 'REJETE': return <CBadge color="danger">Rejeté</CBadge>;
-      default: return <CBadge color="secondary">Brouillon</CBadge>;
+      default: return <CBadge color="secondary">{status}</CBadge>;
     }
   };
 
-  if (loading) return <div className="text-center mt-5"><CSpinner color="primary" /></div>;
+  if (loading) {
+    return (
+      <div className="text-center p-5">
+        <CSpinner color="primary" variant="grow" />
+        <p className="mt-2">Chargement de votre espace...</p>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="d-flex align-items-center mb-4">
-        <CButton color="secondary" variant="ghost" onClick={() => navigate('/client/workspaces')} className="me-3">
-          <CIcon icon={cilArrowLeft} /> Retour
-        </CButton>
-        <div>
-          <h2 className="mb-0">{organization?.name}</h2>
-          <span className="text-muted">{organization?.type}</span>
-        </div>
-      </div>
+<div className="d-flex align-items-center mb-4">
+  <CButton color="light" onClick={() => navigate('/client/workspaces')} className="me-3">
+    <CIcon icon={cilArrowLeft} />
+  </CButton>
+  <div className="flex-grow-1">
+    <h3 className="mb-0">{organization?.name}</h3>
+    <div className="d-flex gap-3 mt-1">
+      <CBadge color="dark">ICE: {organization?.ice || 'N/A'}</CBadge>
+      <small className="text-muted"><CIcon icon={cilBuilding} size="sm" /> {organization?.formeJuridique} — {organization?.ville}</small>
+      <small className="text-muted"><CIcon icon={cilBriefcase} size="sm" /> {organization?.secteurActivite}</small>
+    </div>
+  </div>
+</div>
 
-      <h4 className="mb-3">Nouvelle Demande</h4>
-      <CRow className="mb-5">
-        <CCol md={4} className="mb-3">
-          <CCard className="h-100 text-center border-primary border-top-3 shadow-sm hover-shadow">
-            <CCardBody className="d-flex flex-column align-items-center p-4">
-              <CIcon icon={cilInstitution} size="3xl" className="text-primary mb-3" />
-              <CCardTitle>Demander une Salle</CCardTitle>
-              <CCardText className="text-muted small">Réservez une salle pour vos réunions ou assemblées générales.</CCardText>
-              <CButton color="primary" className="mt-auto w-100" onClick={() => navigate(`/client/nouvelle-demande/salle/${id}`)}>Demander</CButton>
+      <CRow className="mb-4">
+        {/* Action Cards */}
+        <CCol sm={6} lg={4}>
+          <CCard className="mb-4 border-top-info border-top-3 shadow-sm h-100">
+            <CCardBody className="text-center">
+              <div className="avatar avatar-lg bg-info-light mb-3">
+                <CIcon icon={cilDescription} size="xl" className="text-info" />
+              </div>
+              <CCardTitle>Démarches Administratives</CCardTitle>
+              <CCardText className="small text-muted">Visas, certificats d'origine, attestations...</CCardText>
+              <CButton color="info" className="text-white w-100" onClick={() => navigate(`/client/nouvelle-demande/demarche/${id}`)}>
+                Nouvelle Demande
+              </CButton>
             </CCardBody>
           </CCard>
         </CCol>
-        <CCol md={4} className="mb-3">
-          <CCard className="h-100 text-center border-info border-top-3 shadow-sm hover-shadow">
-            <CCardBody className="d-flex flex-column align-items-center p-4">
-              <CIcon icon={cilFile} size="3xl" className="text-info mb-3" />
-              <CCardTitle>Démarche Administrative</CCardTitle>
-              <CCardText className="text-muted small">Demandez des attestations, visas de factures, et certificats.</CCardText>
-              <CButton color="info" className="mt-auto w-100 text-white" onClick={() => navigate(`/client/nouvelle-demande/administrative/${id}`)}>Démarrer</CButton>
-            </CCardBody>
-          </CCard>
-        </CCol>
-        <CCol md={4} className="mb-3">
-          <CCard className="h-100 text-center border-success border-top-3 shadow-sm hover-shadow">
-            <CCardBody className="d-flex flex-column align-items-center p-4">
-              <CIcon icon={cilBriefcase} size="3xl" className="text-success mb-3" />
+
+        <CCol sm={6} lg={4}>
+          <CCard className="mb-4 border-top-success border-top-3 shadow-sm h-100">
+            <CCardBody className="text-center">
+              <div className="avatar avatar-lg bg-success-light mb-3">
+                <CIcon icon={cilBriefcase} size="xl" className="text-success" />
+              </div>
               <CCardTitle>Espace Entreprise</CCardTitle>
-              <CCardText className="text-muted small">Sollicitez un accompagnement et des conseils personnalisés.</CCardText>
-              <CButton color="success" className="mt-auto w-100 text-white" onClick={() => navigate(`/client/nouvelle-demande/espace/${id}`)}>Accéder</CButton>
+              <CCardText className="small text-muted">Domiciliation, création, coworking...</CCardText>
+              <CButton color="success" className="text-white w-100" onClick={() => navigate(`/client/nouvelle-demande/espace/${id}`)}>
+                Réserver Espace
+              </CButton>
+            </CCardBody>
+          </CCard>
+        </CCol>
+
+        <CCol sm={6} lg={4}>
+          <CCard className="mb-4 border-top-warning border-top-3 shadow-sm h-100">
+            <CCardBody className="text-center">
+              <div className="avatar avatar-lg bg-warning-light mb-3">
+                <CIcon icon={cilInstitution} size="xl" className="text-warning" />
+              </div>
+              <CCardTitle>Location de Salle</CCardTitle>
+              <CCardText className="small text-muted">Salles de réunion, conférences, événements...</CCardText>
+              <CButton color="warning" className="text-white w-100" onClick={() => navigate(`/client/nouvelle-demande/salle/${id}`)}>
+                Réserver une Salle
+              </CButton>
             </CCardBody>
           </CCard>
         </CCol>
       </CRow>
 
       <CCard className="shadow-sm">
-        <CCardHeader className="bg-light d-flex align-items-center">
-          <CIcon icon={cilDescription} className="me-2" /> <strong>Historique des demandes</strong>
+        <CCardHeader className="bg-white d-flex justify-content-between align-items-center py-3">
+          <div className="fw-bold">
+            <CIcon icon={cilHistory} className="me-2" />
+            Demandes Récentes
+          </div>
+          <CButton 
+            color="link" 
+            size="sm" 
+            onClick={() => navigate(`/client/historique/${id}`)}
+          >
+            Voir tout l'historique
+          </CButton>
         </CCardHeader>
         <CCardBody>
-          {history.length === 0 ? (
-            <p className="text-center text-muted py-4">Aucune demande soumise pour le moment.</p>
+          {recentHistory.length === 0 ? (
+            <div className="text-center py-4 text-muted">
+              Aucune demande récente pour cette organisation.
+            </div>
           ) : (
-            <CTable hover responsive align="middle">
+            <CTable align="middle" responsive hover>
               <CTableHead color="light">
                 <CTableRow>
-                  <CTableHeaderCell>Référence</CTableHeaderCell>
-                  <CTableHeaderCell>Catégorie</CTableHeaderCell>
-                  <CTableHeaderCell>Date de dépôt</CTableHeaderCell>
+                  <CTableHeaderCell>Réf</CTableHeaderCell>
+                  <CTableHeaderCell>Type</CTableHeaderCell>
+                  <CTableHeaderCell>Date</CTableHeaderCell>
                   <CTableHeaderCell>Statut</CTableHeaderCell>
-                  <CTableHeaderCell className="text-end">Actions</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
-                {history.map((item) => (
+                {recentHistory.map((item) => (
                   <CTableRow key={item.id}>
-                    <CTableDataCell><strong>#{item.reference}</strong></CTableDataCell>
-                    <CTableDataCell>{item.typeDemande}</CTableDataCell>
-                    <CTableDataCell>{new Date(item.dateDepot).toLocaleDateString()}</CTableDataCell>
+                    <CTableDataCell className="fw-semibold">#{item.reference || item.id}</CTableDataCell>
+                    <CTableDataCell>{item.typeLabel}</CTableDataCell>
+                    <CTableDataCell>{new Date(item.createdAt || item.dateDepot).toLocaleDateString()}</CTableDataCell>
                     <CTableDataCell>{getStatusBadge(item.status)}</CTableDataCell>
-                    <CTableDataCell className="text-end">
-                      {item.status === 'VALIDE' ? (
-                        <CButton color="success" size="sm" variant="outline">Télécharger Document</CButton>
-                      ) : item.status === 'REJETE' ? (
-                        <span className="text-danger small">{item.motifRejet || 'Aucun motif fourni'}</span>
-                      ) : (
-                         <span className="text-muted small">Traitement en cours...</span>
-                      )}
-                    </CTableDataCell>
                   </CTableRow>
                 ))}
               </CTableBody>
@@ -136,4 +178,5 @@ const OrganizationDashboard = () => {
     </>
   );
 };
+
 export default OrganizationDashboard;

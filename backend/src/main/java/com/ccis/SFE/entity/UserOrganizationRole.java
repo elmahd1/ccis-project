@@ -1,5 +1,7 @@
 package com.ccis.SFE.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -12,10 +14,12 @@ public class UserOrganizationRole {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties("organizations") // Stop going back to the user's list
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id", nullable = false)
+    @JsonIgnoreProperties("users") // Stop going back to the organization's user list
     private Organization organization;
 
     @Enumerated(EnumType.STRING)

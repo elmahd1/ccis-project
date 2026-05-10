@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8080/api', // Base URL for your backend
+    baseURL: 'http://localhost:8080/api',
 });
 
 // Request Interceptor: Attach Token
@@ -20,29 +21,30 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response && error.response.status === 401) {
-            // Token expired or invalid, force logout
+if (error.response && error.response.status === 401) {
             localStorage.removeItem('token');
-            window.location.href = '/login'; 
+            window.location.href = '#/login'; // Added '#' for HashRouter
+        }
+        if (error.response && error.response.status === 403) {
+            const token = localStorage.getItem('token');
+
+            if (token) {
+                const decoded = jwtDecode(token);
+                const role = decoded.role;
+
+                // Redirect based on role
+                if (role === 'ROLE_ADMIN' || role === 'ROLE_EMPLOYEE') {
+                    window.location.href = '#/dashboard';
+                } else if (role === 'ROLE_CLIENT') {
+                    window.location.href = '#/client/workspaces';
+                } else if (role === 'ROLE_EMPLOYEE') {
+
+                    window.location.href = '#/employee/inbox';}
+            }
         }
         return Promise.reject(error);
     }
 );
 
-// axiosInstance.js - Response Interceptor
-axiosInstance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/login'; 
-        }
-        if (error.response && error.response.status === 403) {
-            // Optional: Use CoreUI Toasts or a simple alert
-            alert("Accès refusé : Vous n'avez pas les droits d'administrateur.");
-        }
-        return Promise.reject(error);
-    }
-);
 
 export default axiosInstance;

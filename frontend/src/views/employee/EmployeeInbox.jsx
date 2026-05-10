@@ -20,31 +20,30 @@ const EmployeeInbox = () => {
     fetchPendingRequests();
   }, []);
 
-  const fetchPendingRequests = async () => {
-    setLoading(true);
-    try {
-      const [adminRes, espaceRes, salleRes] = await Promise.all([
-        axiosInstance.get('/api/employee/demandes/administrative/pending').catch(()=>({data:[]})),
-        axiosInstance.get('/api/employee/demandes/espace/pending').catch(()=>({data:[]})),
-        axiosInstance.get('/api/employee/demandes/salle/pending').catch(()=>({data:[]}))
-      ]);
-      setDemarches({
-        administrative: adminRes.data,
-        espace: espaceRes.data,
-        salle: salleRes.data
-      });
-    } catch (error) {
-      console.error("Erreur lors de la récupération des demandes:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchPendingRequests = async () => {
+  setLoading(true);
+  try {
+    // Single call to the combined endpoint
+    const response = await axiosInstance.get(`/employee/demandes/pending`);
+    
+    // The backend returns: { demarches: [...], espaces: [...], salles: [...] }
+    setDemarches({
+      administrative: response.data.demarches || [],
+      espace: response.data.espaces || [],
+      salle: response.data.salles || []
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des demandes:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleValidate = async (type, id) => {
     if (!window.confirm("Valider cette demande et générer le document officiel ?")) return;
     try {
       // Validates and triggers document generation in the backend
-      await axiosInstance.put(`/api/employee/demandes/${type}/${id}/validate`);
+      await axiosInstance.put(`/employee/demandes/${type}/${id}/validate`);
       fetchPendingRequests();
     } catch (error) {
       alert("Erreur lors de la validation.");
@@ -54,7 +53,7 @@ const EmployeeInbox = () => {
   const handleReject = async () => {
     if (!rejectInfo.observation.trim()) return alert("Veuillez saisir un motif de rejet.");
     try {
-      await axiosInstance.put(`/api/employee/demandes/${rejectInfo.type}/${rejectInfo.id}/reject`, {
+      await axiosInstance.put(`/employee/demandes/${rejectInfo.type}/${rejectInfo.id}/reject`, {
          observation: rejectInfo.observation 
       });
       setRejectModal(false);

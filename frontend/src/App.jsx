@@ -25,29 +25,7 @@ import './scss/style.scss'
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) {
-    return <div className="pt-3 text-center"><CSpinner color="primary" variant="grow" /></div>;
-  }
-
-  // 1. Not logged in at all
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  // 2. Logged in, but trying to access a route they don't have permission for
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // If client tries to access employee page, send back to client home
-    if (user.role === 'ROLE_CLIENT') return <Navigate to="/client/workspaces" replace />;
-    // If employee tries to access client page, send back to dashboard
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-};
+import { ProtectedRoute } from './components/ProtectedRoute'
 import './scss/examples.scss'
 
 // Containers

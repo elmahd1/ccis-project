@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { jwtDecode } from 'jwt-decode';
-
+import { CSpinner } from '@coreui/react';
 export const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -15,6 +15,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 const decodedToken = jwtDecode(token);
                 setUser({
+                    id : decodedToken.id,
                     username: decodedToken.sub,
                     role: decodedToken.role,
                 });
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', token);
         const decodedToken = jwtDecode(token);
         setUser({
+            id : decodedToken.id,
             username: decodedToken.sub,
             role: decodedToken.role,
         });
@@ -44,10 +46,10 @@ export const AuthProvider = ({ children }) => {
 
 
     const isAdmin = user?.role === 'ROLE_ADMIN';
-    const isEmployee = user?.role === 'ROLE_EMPLOYEE' || user?.role === 'ROLE_ADMIN';
+    const isEmployee = user?.role === 'ROLE_EMPLOYEE';
     const isClient = user?.role === 'ROLE_CLIENT';
 
-    if (loading) return null; // Or return a <CSpinner />
+    if (loading) return <div className="pt-3 text-center"><CSpinner color="primary" variant="grow" /></div>; 
 
     return (
         <AuthContext.Provider value={{ user, isAdmin, isEmployee, isClient, login, logout }}>

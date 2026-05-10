@@ -66,7 +66,7 @@ const FicheEspace = () => {
 
     try {
       await axiosInstance.post(
-        `/api/client/demandes/espace?userId=${user?.id || 1}&orgId=${orgId}`, 
+        `/client/demandes/espace?userId=${user?.id}&orgId=${orgId}`, 
         payload
       );
       setSuccess(true);

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   CCard, CCardBody, CCardHeader, CCol, CRow, CTable, CTableBody, CTableDataCell,
   CTableHead, CTableHeaderCell, CTableRow, CButton, CSpinner, CNav, CNavItem, CNavLink, 
-  CTabContent, CTabPane, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, CFormTextarea, CBadge
+  CTabContent, CTabPane, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, 
+  CFormTextarea, CBadge
 } from '@coreui/react';
-import { cilCheckCircle, cilBan, cilSearch } from '@coreui/icons';
+import { cilCheckCircle, cilBan, cilCloudDownload } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
 import axiosInstance from '../../api/axiosInstance';
 
@@ -12,7 +13,6 @@ const EmployeeInbox = () => {
   const [activeTab, setActiveTab] = useState('administrative');
   const [demarches, setDemarches] = useState({ administrative: [], espace: [], salle: [] });
   const [loading, setLoading] = useState(true);
-
   const [rejectModal, setRejectModal] = useState(false);
   const [rejectInfo, setRejectInfo] = useState({ type: '', id: '', observation: '' });
 
@@ -20,29 +20,25 @@ const EmployeeInbox = () => {
     fetchPendingRequests();
   }, []);
 
-const fetchPendingRequests = async () => {
-  setLoading(true);
-  try {
-    // Single call to the combined endpoint
-    const response = await axiosInstance.get(`/employee/demandes/pending`);
-    
-    // The backend returns: { demarches: [...], espaces: [...], salles: [...] }
-    setDemarches({
-      administrative: response.data.demarches || [],
-      espace: response.data.espaces || [],
-      salle: response.data.salles || []
-    });
-  } catch (error) {
-    console.error("Erreur lors de la récupération des demandes:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchPendingRequests = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(`/employee/demandes/pending`);
+      setDemarches({
+        administrative: response.data.demarches || [],
+        espace: response.data.espaces || [],
+        salle: response.data.salles || []
+      });
+    } catch (error) {
+      console.error("Erreur:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleValidate = async (type, id) => {
-    if (!window.confirm("Valider cette demande et générer le document officiel ?")) return;
+    if (!window.confirm("Valider cette demande ?")) return;
     try {
-      // Validates and triggers document generation in the backend
       await axiosInstance.put(`/employee/demandes/${type}/${id}/validate`);
       fetchPendingRequests();
     } catch (error) {
@@ -51,15 +47,40 @@ const fetchPendingRequests = async () => {
   };
 
   const handleReject = async () => {
-    if (!rejectInfo.observation.trim()) return alert("Veuillez saisir un motif de rejet.");
+    if (!rejectInfo.observation.trim()) return alert("Veuillez saisir un motif.");
     try {
       await axiosInstance.put(`/employee/demandes/${rejectInfo.type}/${rejectInfo.id}/reject`, {
-         observation: rejectInfo.observation 
+        observation: rejectInfo.observation
       });
       setRejectModal(false);
       fetchPendingRequests();
     } catch (error) {
       alert("Erreur lors du rejet.");
+    }
+  };
+
+  const handleDownload = async (type, id) => {
+    try {
+      const response = await axiosInstance.get(`/employee/demandes/${type}/${id}/download`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `${type}_${id}.docx`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+      }
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Erreur lors du téléchargement.");
     }
   };
 
@@ -74,7 +95,7 @@ const fetchPendingRequests = async () => {
             <CTableHeaderCell>ID</CTableHeaderCell>
             <CTableHeaderCell>Organisation</CTableHeaderCell>
             <CTableHeaderCell>Détails</CTableHeaderCell>
-            <CTableHeaderCell>Date de dépôt</CTableHeaderCell>
+            <CTableHeaderCell>Date</CTableHeaderCell>
             <CTableHeaderCell className="text-end">Actions</CTableHeaderCell>
           </CTableRow>
         </CTableHead>
@@ -82,18 +103,24 @@ const fetchPendingRequests = async () => {
           {data.map((item) => (
             <CTableRow key={item.id}>
               <CTableDataCell>#{item.id}</CTableDataCell>
-              <CTableDataCell><strong>{item.organizationName}</strong></CTableDataCell>
+              <CTableDataCell><strong>{item.organizationName || item.organization?.name}</strong></CTableDataCell>
               <CTableDataCell>
                  {type === 'administrative' && item.objetVisite}
                  {type === 'espace' && item.tailleEntreprise}
                  {type === 'salle' && item.activiteOuSujet}
               </CTableDataCell>
-              <CTableDataCell>{new Date(item.dateDemande || item.createdAt).toLocaleDateString()}</CTableDataCell>
+              <CTableDataCell>{new Date(item.createdAt).toLocaleDateString()}</CTableDataCell>
               <CTableDataCell className="text-end">
-                <CButton color="success" size="sm" className="me-2 text-white" onClick={() => handleValidate(type, item.id)}>
-                  <CIcon icon={cilCheckCircle} className="me-1" /> Valider & Générer
+                <CButton color="primary" size="sm" className="me-2" onClick={() => handleDownload(type, item.id)}>
+                  <CIcon icon={cilDownload} className="me-1" /> Télécharger
                 </CButton>
-                <CButton color="danger" size="sm" variant="outline" onClick={() => { setRejectInfo({ type, id: item.id, observation: '' }); setRejectModal(true); }}>
+                <CButton color="success" size="sm" className="me-2 text-white" onClick={() => handleValidate(type, item.id)}>
+                  <CIcon icon={cilCheckCircle} className="me-1" /> Valider
+                </CButton>
+                <CButton color="danger" size="sm" variant="outline" onClick={() => { 
+                  setRejectInfo({ type, id: item.id, observation: '' }); 
+                  setRejectModal(true); 
+                }}>
                   <CIcon icon={cilBan} className="me-1" /> Rejeter
                 </CButton>
               </CTableDataCell>
@@ -141,17 +168,18 @@ const fetchPendingRequests = async () => {
         <CModalBody>
           <CFormTextarea 
             rows="3" 
-            placeholder="Ce motif sera communiqué au client..."
+            placeholder="Motif de rejet..."
             value={rejectInfo.observation}
             onChange={(e) => setRejectInfo({...rejectInfo, observation: e.target.value})}
           />
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" variant="ghost" onClick={() => setRejectModal(false)}>Annuler</CButton>
-          <CButton color="danger" onClick={handleReject}>Confirmer le rejet</CButton>
+          <CButton color="danger" onClick={handleReject}>Confirmer</CButton>
         </CModalFooter>
       </CModal>
     </>
   );
 };
+
 export default EmployeeInbox;

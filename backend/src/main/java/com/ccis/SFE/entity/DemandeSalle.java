@@ -1,23 +1,24 @@
 package com.ccis.SFE.entity;
-import java.time.LocalDateTime;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "demande_salle")
 public class DemandeSalle extends BaseDemande {
     
-    private LocalDateTime dateHeureReunion;
+    private LocalDateTime reunion;
     private String activiteOuSujet;
-    private String adresse;
-    private String membres;     
+    private String membres;
+    
+    @Column(length = 500)
+    private String motifRejet;
 
-    public LocalDateTime getDateHeureReunion() {
-        return dateHeureReunion;
+    public LocalDateTime getReunion() {
+        return reunion;
     }
-    public void setDateHeureReunion(LocalDateTime dateHeureReunion) {
-        this.dateHeureReunion = dateHeureReunion;
+    public void setReunion(LocalDateTime reunion) {
+        this.reunion = reunion;
     }
     public String getActiviteOuSujet() {
         return activiteOuSujet;
@@ -25,17 +26,16 @@ public class DemandeSalle extends BaseDemande {
     public void setActiviteOuSujet(String activiteOuSujet) {
         this.activiteOuSujet = activiteOuSujet;
     }
-    public String getAdresse() {
-        return adresse;
-    }
-    public void setAdresse(String adresse) {
-        this.adresse = adresse;
-    }
     public String getMembres() {
         return membres;
     }
     public void setMembres(String membres) {
         this.membres = membres;
     }
-    
+    public String getMotifRejet() {
+        return motifRejet;
+    }
+    public void setMotifRejet(String motifRejet) {
+        this.motifRejet = motifRejet;
+    }
 }

@@ -37,8 +37,8 @@ public class SecurityConfig {
                 // 2. Define role-based access here
                 .requestMatchers("/api/users/**").hasAuthority("ROLE_ADMIN") 
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers("/api/organizations/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLOYEE", "ROLE_USER")
-                .requestMatchers("/api/employee/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLOYEE")
+                .requestMatchers("/api/organizations/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLOYEE", "ROLE_CLIENT")
+                .requestMatchers("/api/employee/**").hasAnyAuthority("ROLE_EMPLOYEE")
                 .anyRequest().authenticated()
             )
             // 3. Add the filter before the standard authentication filter
@@ -72,4 +72,5 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+    
 }

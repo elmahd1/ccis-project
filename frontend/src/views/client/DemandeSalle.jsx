@@ -48,35 +48,45 @@ const DemandeSalle = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
 
-    try {
-      // 1. Submit the JSON data first
-      // Note: Make sure you have this endpoint in your ClientDemandeController!
-      const response = await axiosInstance.post(
-        `/client/demandes/salle?userId=${user?.id || 1}&orgId=${orgId}`, 
-        formData
-      );
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
 
-      const newDemandeId = response.data.id;
+  try {
 
-      // 2. Upload Files (If you have a file upload endpoint configured)
+    const dateTimeReunion = new Date(`${formData.dateReunion}T${formData.heureReunion}:00`);
+    
+    const payload = {
+      activiteOuSujet: formData.activiteOuSujet,
+      adresse: formData.adresse,
+      dateHeureReunion: dateTimeReunion.toISOString(),
+      membres: [formData.membre1, formData.membre2, formData.membre3].filter(Boolean).join(', ')
+    };
+    
+    const response = await axiosInstance.post(
+      `/client/demandes/salle?userId=${user?.id}&orgId=${orgId}`, 
+      payload
+    );
+
+    const newDemandeId = response.data.id;
+
+    // Upload files if any
+    if (Object.keys(files).length > 0) {
       const formDataFiles = new FormData();
       Object.keys(files).forEach(key => formDataFiles.append('files', files[key]));
       await axiosInstance.post(`/client/demandes/salle/${newDemandeId}/upload`, formDataFiles);
-
-      setSuccess(true);
-      setTimeout(() => navigate(`/client/workspace/${orgId}`), 3000); // Go back to dashboard after 3s
-
-    } catch (error) {
-      console.error("Erreur lors de la soumission :", error);
-      alert("Une erreur s'est produite lors de la soumission.");
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    setSuccess(true);
+    setTimeout(() => navigate(`/client/workspace/${orgId}`), 3000);
+  } catch (error) {
+    console.error("Erreur:", error);
+    alert("Une erreur s'est produite.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   if (success) {
     return (

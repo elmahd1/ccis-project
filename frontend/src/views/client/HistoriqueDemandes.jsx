@@ -15,40 +15,58 @@ const HistoriqueDemandes = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
- // HistoriqueDemandes.jsx
+const [organizations, setOrganizations] = useState([]);
 
 useEffect(() => {
-  // Use a more explicit check
-  console.log("AuthContext user:", user);
   if (user && user.id) {
-    console.log("Fetching history for user ID:", user.id);
-    fetchHistory();
+    fetchUserOrganizations();
   }
-}, [user]); // This will trigger as soon as 'user' is set in AuthContext
+}, [user]);
 
 const fetchHistory = async () => {
   setLoading(true);
   try {
-    const response = await axiosInstance.get(`/client/demandes/history/user/${user.id}`);
+    let allDemandes = [];
     
-    // Extract the three lists from the object
-    const { demarches, espaces, salles } = response.data;
-
-    // Combine them and add a 'category' label so you know which is which
-    const combined = [
-      ...(demarches || []).map(d => ({ ...d, category: 'Administrative' })),
-      ...(espaces || []).map(e => ({ ...e, category: 'Espace Entreprise' })),
-      ...(salles || []).map(s => ({ ...s, category: 'Réservation Salle' }))
-    ];
-
-    // Sort by date (most recent first)
-    combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-    setData(combined); 
+    if (organizations.length === 0) {
+      // Try to fetch directly by user ID if no orgs
+      const response = await axiosInstance.get(`/client/demandes/history/user/${user.id}`);
+      const { demarches, espaces, salles } = response.data;
+      allDemandes = [
+        ...(demarches || []).map(d => ({ ...d, category: 'Administrative' })),
+        ...(espaces || []).map(e => ({ ...e, category: 'Espace Entreprise' })),
+        ...(salles || []).map(s => ({ ...s, category: 'Réservation Salle' }))
+      ];
+    } else {
+      // Fetch history for each organization
+      for (const org of organizations) {
+        const response = await axiosInstance.get(`/client/demandes/history/${org.id}`);
+        const { demarches, espaces, salles } = response.data;
+        allDemandes.push(
+          ...(demarches || []).map(d => ({ ...d, category: 'Administrative', orgName: org.name })),
+          ...(espaces || []).map(e => ({ ...e, category: 'Espace Entreprise', orgName: org.name })),
+          ...(salles || []).map(s => ({ ...s, category: 'Réservation Salle', orgName: org.name }))
+        );
+      }
+    }
+    
+    allDemandes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    setData(allDemandes);
   } catch (error) {
     console.error("Error fetching history:", error);
   } finally {
     setLoading(false);
+  }
+};
+
+const fetchUserOrganizations = async () => {
+  try {
+    const response = await axiosInstance.get(`/organizations/user/${user.id}`);
+    setOrganizations(response.data);
+    await fetchHistory(); // Fetch history after organizations are loaded
+  } catch (error) {
+    console.error("Error fetching organizations:", error);
+    await fetchHistory(); // Still try to fetch history
   }
 };
 

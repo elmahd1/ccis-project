@@ -1,25 +1,5 @@
-/**
- * AppHeader Component
- *
- * Main application header with navigation, theme switcher, and user menu.
- * Features include:
- * - Sidebar toggle button
- * - Primary navigation links
- * - Notification and action icons
- * - Theme switcher (light/dark/auto)
- * - User dropdown menu
- * - Breadcrumb navigation
- * - Sticky positioning with scroll shadow effect
- *
- * @component
- * @example
- * return (
- *   <AppHeader />
- * )
- */
-
+// AppHeader.jsx - Cleaned version
 import React, { useEffect, useRef } from 'react'
-import { NavLink } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   CContainer,
@@ -33,39 +13,23 @@ import {
   CNavLink,
   CNavItem,
   useColorModes,
-  CForm, 
-  CFormInput,
-  CButton,
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import {
-  cilBell,
   cilContrast,
-  cilEnvelopeOpen,
-  cilList,
   cilMenu,
   cilMoon,
   cilSun,
 } from '@coreui/icons'
 
-import { AppBreadcrumb } from './index'
-import { AppHeaderDropdown } from './header/index'
-import { useAuth } from '../context/AuthContext' // <-- 1. IMPORT YOUR AUTH CONTEXT
-/**
- * AppHeader functional component
- *
- * Manages header UI including:
- * - Redux integration for sidebar state
- * - Theme management with CoreUI useColorModes hook
- * - Scroll-based shadow effect
- * - Responsive navigation
- *
- * @returns {React.ReactElement} Header component with navigation and controls
- */
+import { AppBreadcrumb, AppHeaderDropdown } from './index'
+
+import { useAuth } from '../context/AuthContext'
+
 const AppHeader = () => {
   const headerRef = useRef()
   const { colorMode, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
-const { isAdmin } = useAuth() // <-- 2. GET ADMIN STATUS
+  const { isAdmin } = useAuth()
   const dispatch = useDispatch()
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
@@ -74,7 +38,6 @@ const { isAdmin } = useAuth() // <-- 2. GET ADMIN STATUS
       headerRef.current &&
         headerRef.current.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0)
     }
-
     document.addEventListener('scroll', handleScroll)
     return () => document.removeEventListener('scroll', handleScroll)
   }, [])
@@ -88,37 +51,13 @@ const { isAdmin } = useAuth() // <-- 2. GET ADMIN STATUS
         >
           <CIcon icon={cilMenu} size="lg" />
         </CHeaderToggler>
-        <CHeaderNav className="d-none d-md-flex">
-          {isAdmin && ( 
-          <><CNavItem>
-              <CNavLink to="/dashboard" as={NavLink}>
-                Dashboard
-              </CNavLink>
-            </CNavItem><CNavItem>
-                <CNavLink href="#">Users</CNavLink>
-              </CNavItem><CNavItem>
-                <CNavLink href="#">Settings</CNavLink>
-              </CNavItem></>)}
-        </CHeaderNav>
+        
+        {/* REMOVED: Unused navigation links (Dashboard, Users, Settings) */}
+        
+        {/* REMOVED: Notification icons (cilBell, cilList, cilEnvelopeOpen) - not used in CCIS */}
         
         <CHeaderNav className="ms-auto">
-          <CNavItem>
-            <CNavLink href="#">
-              <CIcon icon={cilBell} size="lg" />
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">
-              <CIcon icon={cilList} size="lg" />
-            </CNavLink>
-          </CNavItem>
-          <CNavItem>
-            <CNavLink href="#">
-              <CIcon icon={cilEnvelopeOpen} size="lg" />
-            </CNavLink>
-          </CNavItem>
-        </CHeaderNav>
-        <CHeaderNav>
+          {/* Theme switcher only */}
           <li className="nav-item py-1">
             <div className="vr h-100 mx-2 text-body text-opacity-75"></div>
           </li>

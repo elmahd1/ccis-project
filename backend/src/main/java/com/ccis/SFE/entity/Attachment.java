@@ -9,7 +9,8 @@ public class Attachment {
     
     private String fileName;
     private String fileType;
-    
+    private String filePath; 
+
     @ManyToOne
     @JoinColumn(name = "demande_id")
     private BaseDemande demande;
@@ -31,5 +32,17 @@ public class Attachment {
     }
     public void setFileType(String fileType) {
         this.fileType = fileType;
+    }
+    public String getFilePath() { 
+        return filePath;
+    }
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+    public BaseDemande getDemande() {
+        return demande;
+    }
+    public void setDemande(BaseDemande demande) {
+        this.demande = demande;
     }
 }

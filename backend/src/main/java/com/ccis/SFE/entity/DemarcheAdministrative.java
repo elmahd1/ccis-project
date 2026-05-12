@@ -1,16 +1,13 @@
 package com.ccis.SFE.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 @Entity
 @Table(name = "demarche_administrative")
 public class DemarcheAdministrative extends BaseDemande {
 
-    private String objetVisite; 
+    private String objetVisite;
+    private String document;
     private Double montant; 
-    private String suiteDemande;
-    private String observation;
-    private LocalDateTime dateHeureDelivrance;
 
     public String getObjetVisite() {
         return objetVisite;
@@ -24,24 +21,12 @@ public class DemarcheAdministrative extends BaseDemande {
     public void setMontant(Double montant) {
         this.montant = montant;
     }
-    public String getSuiteDemande() {
-        return suiteDemande;
+    public String getDocument() {
+        return document;
     }
-    public void setSuiteDemande(String suiteDemande) {
-        this.suiteDemande = suiteDemande;
+    public void setDocument(String document) {
+        this.document = document;
     }
 
-    public String getObservation() {
-        return observation;
-    }
-    public void setObservation(String observation) {
-        this.observation = observation;
-    }
-    public LocalDateTime getDateHeureDelivrance() {
-        return dateHeureDelivrance;
-    }
-    public void setDateHeureDelivrance(LocalDateTime dateHeureDelivrance) {
-        this.dateHeureDelivrance = dateHeureDelivrance;
-    }
     
 }

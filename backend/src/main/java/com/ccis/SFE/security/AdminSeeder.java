@@ -19,17 +19,29 @@ public class AdminSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Check if an admin already exists in the database
+        // Check if an admin already exists
         if (!userRepository.existsByUsername("admin")) {
             
+            // Create ADMIN user
             User adminUser = new User();
             adminUser.setUsername("admin");
             adminUser.setEmail("admin@example.com");
-            adminUser.setPassword(passwordEncoder.encode("admin123")); 
-            adminUser.setRole("ROLE_ADMIN"); // Set as Admin
-            
+            adminUser.setPassword(passwordEncoder.encode("pw"));
+            adminUser.setRole("ROLE_ADMIN");
+            adminUser.setAccountStatus(User.AccountStatus.ACTIVE);
             userRepository.save(adminUser);
-            System.out.println("✅ Default Admin account created successfully! Username: admin | Password: admin123");
+            System.out.println("✅ Default Admin account created! Username: admin | Password: pw");
+
+            // Create EMPLOYEE user
+            User employeeUser = new User();
+            employeeUser.setUsername("employee");
+            employeeUser.setEmail("employee@example.com");
+            employeeUser.setPassword(passwordEncoder.encode("pw"));
+            employeeUser.setRole("ROLE_EMPLOYEE");
+            employeeUser.setAccountStatus(User.AccountStatus.ACTIVE);
+            userRepository.save(employeeUser);
+            System.out.println("✅ Default Employee account created! Username: employee | Password: pw");
+            
         }
     }
 }

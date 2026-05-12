@@ -87,7 +87,7 @@ const OrganizationDirectory = () => {
                         <CTableDataCell>
                           <CBadge color={item.type === 'ASSOCIATION' ? 'success' : 'info'}>{item.type}</CBadge>
                         </CTableDataCell>
-                        <CTableDataCell>{item.ownerName || 'N/A'}</CTableDataCell>
+                        <CTableDataCell>{item.owner?.username || item.ownerName || 'N/A'}</CTableDataCell>
                         <CTableDataCell>
                           <CBadge color={item.officiallyCreated ? 'success' : 'secondary'} variant="outline">
                             {item.officiallyCreated ? 'Créée' : 'En constitution'}

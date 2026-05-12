@@ -26,40 +26,40 @@ public class JwtUtil {
     private final long JWT_EXPIRATION_MS = 86400000; 
     
     @Autowired
-    private UserRepository userRepository; // Add this
+    private UserRepository userRepository; 
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
     
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        
-        String role = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .findFirst()
-                .orElse("ROLE_USER");
-        claims.put("role", role);
-        
-        // Fetch the actual user from database to get the ID
-        try {
-            User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
-            if (user != null) {
-                claims.put("id", user.getId());
-                System.out.println("Added ID from database: " + user.getId());
-            }
-        } catch (Exception e) {
-            System.out.println("Could not fetch user ID: " + e.getMessage());
+public String generateToken(UserDetails userDetails) {
+    Map<String, Object> claims = new HashMap<>();
+    
+    String role = userDetails.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .findFirst()
+            .orElse("ROLE_CLIENT");
+    claims.put("role", role);
+    
+    // Fetch the actual user from database to get the ID
+    try {
+        User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+        if (user != null) {
+            claims.put("id", user.getId());
+            claims.put("userId", user.getId());
         }
-        
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
+    } catch (Exception e) {
+        System.out.println("Could not fetch user ID: " + e.getMessage());
     }
+    
+    return Jwts.builder()
+            .setClaims(claims)
+            .setSubject(userDetails.getUsername())
+            .setIssuedAt(new Date(System.currentTimeMillis()))
+            .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_MS))
+            .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+            .compact();
+}
     
 
     public String extractUsername(String token) {

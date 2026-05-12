@@ -1,3 +1,4 @@
+// src/views/pages/login/Login.jsx - CORRECTED VERSION
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -16,8 +17,8 @@ import {
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { cilLockLocked, cilUser } from '@coreui/icons'
-import axiosInstance from '../../../api/axiosInstance' // Import your axios instance
-import { useAuth } from '../../../context/AuthContext' // Import your auth hook
+import axiosInstance from '../../../api/axiosInstance'
+import { useAuth } from '../../../context/AuthContext'
 
 const Login = () => {
   const [username, setUsername] = useState('')
@@ -27,24 +28,41 @@ const Login = () => {
   
   const { login } = useAuth()
 
+  // Helper function to redirect based on role
+  const redirectBasedOnRole = (role) => {
+    switch (role) {
+      case 'ROLE_ADMIN':
+        navigate('/admin/dashboard')
+        break
+      case 'ROLE_EMPLOYEE':
+        navigate('/employee/inbox')
+        break
+      case 'ROLE_CLIENT':
+        navigate('/client/workspaces')
+        break
+      default:
+        navigate('/login') // fallback to login if role unknown
+    }
+  }
+
   const handleLogin = async (e) => {
     e.preventDefault() 
     setError('')
 
     try {
-      // Use axiosInstance instead of fetch
       const response = await axiosInstance.post('/auth/login', { username, password })
       
-      // Pass the token to your context's login function
-      login(response.data.token)
+      // Pass the token and user data to your context's login function
+      login(response.data.token, response.data)
       
-      // Redirect to dashboard
-      navigate('/dashboard') 
+      // Redirect based on role from response
+      redirectBasedOnRole(response.data.role)
       
     } catch (err) {
       if (err.response && err.response.status === 401) {
-        // FIXED: Using double quotes here to avoid escaping issues with the apostrophe
         setError("Nom d'utilisateur ou mot de passe incorrect")
+      } else if (err.response && err.response.data) {
+        setError(err.response.data)
       } else {
         setError("Erreur réseau. Le serveur est-il allumé ?")
       }
@@ -92,7 +110,6 @@ const Login = () => {
                     </CInputGroup>
                     <CRow>
                       <CCol xs={6}>
-                        {/* Make sure type="submit" so the form submits on Enter */}
                         <CButton type="submit" color="primary" className="px-4">
                           Login
                         </CButton>

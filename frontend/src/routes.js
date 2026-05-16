@@ -19,6 +19,8 @@ const UserManagement = React.lazy(() => import('./views/admin/ManageUsersPage'))
 // ==========================================
 const OrganizationDirectory = React.lazy(() => import('./views/employee/OrganizationDirectory')) 
 const EmployeeInbox = React.lazy(() => import('./views/employee/EmployeeInbox'))
+const EmployeeClientManagement = React.lazy(() => import('./views/employee/EmployeeClientManagement'))
+const EmployeeDemandeDetail = React.lazy(() => import('./views/employee/EmployeeDemandeDetail'))
 
 // ==========================================
 // CLIENT routes
@@ -41,7 +43,8 @@ const routes = [
     // Routes Employé
     { path: '/employee/inbox', name: 'Boîte de réception', element: EmployeeInbox, roles: ['ROLE_EMPLOYEE'] },
     { path: '/employee/organisations', name: 'Annuaire des Organisations', element: OrganizationDirectory, roles: ['ROLE_EMPLOYEE'] },
-
+    { path: '/employee/demande/:type/:id', name: 'Détail de la demande', element: EmployeeDemandeDetail, roles: ['ROLE_EMPLOYEE'] },
+    { path: '/employee/clients', name: 'Gestion des clients', element: EmployeeClientManagement, roles: ['ROLE_EMPLOYEE'] },
     // Routes Client
     { path: '/client/workspaces', name: 'Mes Espaces', element: ClientWorkspaces, roles: ['ROLE_CLIENT'] },
     { path: '/client/workspace/:id', name: 'Tableau de bord', element: ClientDashboard, roles: ['ROLE_CLIENT'] },

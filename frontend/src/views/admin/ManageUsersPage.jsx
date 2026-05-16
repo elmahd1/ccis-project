@@ -1,3 +1,4 @@
+// ManageUsersPage.jsx - Version sans activation/rejet de comptes
 import React, { useState, useEffect } from 'react'
 import {
   CCard,
@@ -25,15 +26,12 @@ import {
   CInputGroup,
   CInputGroupText,
   CPagination,
-  CPaginationItem,
-  CFormTextarea,
-  CFormLabel
+  CPaginationItem
 } from '@coreui/react'
 import CIcon from '@coreui/icons-react'
 import { 
   cilUser, cilEnvelopeClosed, cilUserPlus, 
-  cilTrash, cilReload, cilSearch, cilUserFollow, 
-  cilUserUnfollow, cilCheckCircle, cilBan,
+  cilTrash, cilReload, cilSearch,
   cilPeople, cilWarning 
 } from '@coreui/icons'
 import axiosInstance from '../../api/axiosInstance'
@@ -63,14 +61,6 @@ const ManageUsersPage = () => {
     password: '',
     fullName: ''
   })
-
-  // Activation/Rejection Modal
-  const [visibleActivate, setVisibleActivate] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
-  const [actionType, setActionType] = useState(null) // 'activate' or 'reject'
-  const [qualite, setQualite] = useState('')
-  const [rejectionReason, setRejectionReason] = useState('')
-  const [activating, setActivating] = useState(false)
 
   // Filter users based on search, role, and status
   useEffect(() => {
@@ -148,56 +138,6 @@ const ManageUsersPage = () => {
     }
   }
 
-  // NEW: Activate user (employee or employer)
-  const handleActivateUser = async () => {
-    if (!qualite.trim() && actionType === 'activate') {
-      setError("Veuillez indiquer votre qualité")
-      return
-    }
-    
-    setActivating(true)
-    try {
-      await axiosInstance.put(`/admin/users/${selectedUser.id}/activate`, null, {
-        params: { qualite: qualite }
-      })
-      setSuccess(`Compte "${selectedUser.username}" activé avec succès`)
-      setVisibleActivate(false)
-      setSelectedUser(null)
-      setQualite('')
-      fetchUsers()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err) {
-      setError(err.response?.data?.error || "Erreur lors de l'activation")
-    } finally {
-      setActivating(false)
-    }
-  }
-
-  // NEW: Reject user
-  const handleRejectUser = async () => {
-    if (!rejectionReason.trim()) {
-      setError("Veuillez indiquer un motif de rejet")
-      return
-    }
-    
-    setActivating(true)
-    try {
-      await axiosInstance.put(`/admin/users/${selectedUser.id}/reject`, null, {
-        params: { reason: rejectionReason }
-      })
-      setSuccess(`Compte "${selectedUser.username}" rejeté`)
-      setVisibleActivate(false)
-      setSelectedUser(null)
-      setRejectionReason('')
-      fetchUsers()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err) {
-      setError(err.response?.data?.error || "Erreur lors du rejet")
-    } finally {
-      setActivating(false)
-    }
-  }
-
   const handleDeleteUser = async (userId, userRole, username) => {
     if (userRole === 'ROLE_ADMIN') {
       setError("Impossible de supprimer un compte administrateur")
@@ -215,22 +155,6 @@ const ManageUsersPage = () => {
       setError('Échec de la suppression')
       console.error(err)
     }
-  }
-
-  const openActivationModal = (user) => {
-    setSelectedUser(user)
-    setActionType('activate')
-    setQualite('')
-    setRejectionReason('')
-    setVisibleActivate(true)
-  }
-
-  const openRejectionModal = (user) => {
-    setSelectedUser(user)
-    setActionType('reject')
-    setQualite('')
-    setRejectionReason('')
-    setVisibleActivate(true)
   }
 
   const getRoleBadge = (role) => {
@@ -282,7 +206,7 @@ const ManageUsersPage = () => {
           <div className="d-flex gap-2">
             {pendingClients > 0 && (
               <CBadge color="warning" className="p-2">
-                <CIcon icon={cilWarning } className="me-1" />
+                <CIcon icon={cilWarning} className="me-1" />
                 {pendingClients} activation(s) en attente
               </CBadge>
             )}
@@ -296,7 +220,7 @@ const ManageUsersPage = () => {
         <CCard className="mb-4">
           <CCardHeader>
             <strong>Liste des utilisateurs</strong>
-            <small className="text-muted ms-2">Gérer les comptes et activations</small>
+            <small className="text-muted ms-2">Gérer les comptes (création employés, suppression)</small>
           </CCardHeader>
           <CCardBody>
             {/* Alerts */}
@@ -369,7 +293,7 @@ const ManageUsersPage = () => {
                       <CTableHeaderCell>Contact</CTableHeaderCell>
                       <CTableHeaderCell>Rôle</CTableHeaderCell>
                       <CTableHeaderCell>Statut</CTableHeaderCell>
-                      <CTableHeaderCell style={{ width: '180px' }} className="text-end">Actions</CTableHeaderCell>
+                      <CTableHeaderCell style={{ width: '100px' }} className="text-end">Actions</CTableHeaderCell>
                     </CTableRow>
                   </CTableHead>
                   <CTableBody>
@@ -403,34 +327,7 @@ const ManageUsersPage = () => {
                           <CTableDataCell>{getRoleBadge(user.role)}</CTableDataCell>
                           <CTableDataCell>{getStatusBadge(user.accountStatus)}</CTableDataCell>
                           <CTableDataCell className="text-end">
-                            {/* Activation button - only for clients pending activation */}
-                            {user.role === 'ROLE_CLIENT' && user.accountStatus === 'PENDING_ACTIVATION' && (
-                              <>
-                                <CButton 
-                                  color="success" 
-                                  size="sm" 
-                                  className="me-2"
-                                  onClick={() => openActivationModal(user)}
-                                  title="Activer le compte"
-                                >
-                                  <CIcon icon={cilCheckCircle} className="me-1" />
-                                  Activer
-                                </CButton>
-                                <CButton 
-                                  color="danger" 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="me-2"
-                                  onClick={() => openRejectionModal(user)}
-                                  title="Rejeter le compte"
-                                >
-                                  <CIcon icon={cilBan} className="me-1" />
-                                  Rejeter
-                                </CButton>
-                              </>
-                            )}
-                            
-                            {/* Delete button - not for admin */}
+                            {/* Delete button - only for non-admin users */}
                             {user.role !== 'ROLE_ADMIN' && (
                               <CButton 
                                 color="danger" 
@@ -479,7 +376,7 @@ const ManageUsersPage = () => {
           </CCardBody>
         </CCard>
         
-        {/* Create Employee Modal */}
+        {/* Create Employee Modal - Conservé */}
         <CModal visible={visibleCreate} onClose={() => setVisibleCreate(false)} size="md">
           <CModalHeader onClose={() => setVisibleCreate(false)}>
             <CModalTitle>
@@ -534,77 +431,6 @@ const ManageUsersPage = () => {
             <CButton color="primary" onClick={handleCreateEmployee} disabled={submitting}>
               {submitting ? <CSpinner size="sm" className="me-2" /> : <CIcon icon={cilUserPlus} className="me-2" />}
               Créer le compte
-            </CButton>
-          </CModalFooter>
-        </CModal>
-
-        {/* Activation/Rejection Modal */}
-        <CModal visible={visibleActivate} onClose={() => setVisibleActivate(false)} size="md">
-          <CModalHeader onClose={() => setVisibleActivate(false)}>
-            <CModalTitle>
-              {actionType === 'activate' ? (
-                <><CIcon icon={cilCheckCircle} className="me-2 text-success" /> Activer le compte</>
-              ) : (
-                <><CIcon icon={cilBan} className="me-2 text-danger" /> Rejeter le compte</>
-              )}
-            </CModalTitle>
-          </CModalHeader>
-          <CModalBody>
-            {selectedUser && (
-              <>
-                <div className="mb-3 p-3 bg-light rounded">
-                  <div className="fw-semibold">Utilisateur: {selectedUser.username}</div>
-                  <div>Email: {selectedUser.email}</div>
-                  {selectedUser.prenom && selectedUser.nom && (
-                    <div>Nom: {selectedUser.prenom} {selectedUser.nom}</div>
-                  )}
-                  {selectedUser.numTelGsm && <div>Téléphone: {selectedUser.numTelGsm}</div>}
-                  {selectedUser.ville && <div>Ville: {selectedUser.ville}</div>}
-                  {selectedUser.statut && <div>Statut: {selectedUser.statut === 'AUTO_ENTREPRENEUR' ? 'Auto-entrepreneur' : 'Porteur de projet'}</div>}
-                </div>
-
-                {actionType === 'activate' ? (
-                  <div className="mb-3">
-                    <CFormLabel className="fw-semibold">Qualité / Fonction *</CFormLabel>
-                    <CFormSelect 
-                      value={qualite}
-                      onChange={(e) => setQualite(e.target.value)}
-                    >
-                      <option value="">Sélectionnez votre qualité...</option>
-                      <option value="Chef de service">Chef de service</option>
-                      <option value="Responsable accueil">Responsable accueil</option>
-                      <option value="Conseiller">Conseiller CCIS</option>
-                      <option value="Directeur">Directeur</option>
-                      <option value="Autre">Autre</option>
-                    </CFormSelect>
-                    <small className="text-muted">Cette information sera enregistrée dans les logs</small>
-                  </div>
-                ) : (
-                  <div className="mb-3">
-                    <CFormLabel className="fw-semibold">Motif du rejet *</CFormLabel>
-                    <CFormTextarea 
-                      rows="3"
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      placeholder="Expliquez la raison du rejet..."
-                    />
-                    <small className="text-muted">Ce motif sera communiqué à l'utilisateur</small>
-                  </div>
-                )}
-              </>
-            )}
-          </CModalBody>
-          <CModalFooter>
-            <CButton color="secondary" variant="ghost" onClick={() => setVisibleActivate(false)}>
-              Annuler
-            </CButton>
-            <CButton 
-              color={actionType === 'activate' ? "success" : "danger"} 
-              onClick={actionType === 'activate' ? handleActivateUser : handleRejectUser}
-              disabled={activating}
-            >
-              {activating ? <CSpinner size="sm" className="me-2" /> : null}
-              {actionType === 'activate' ? 'Activer' : 'Rejeter'}
             </CButton>
           </CModalFooter>
         </CModal>

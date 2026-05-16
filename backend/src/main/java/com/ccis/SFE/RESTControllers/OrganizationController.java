@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -81,19 +83,26 @@ public class OrganizationController {
 
         return ResponseEntity.ok(savedOrg);
     }
-    
-    // Rest of the controller remains the same...
-    
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Organization>> getUserOrganizations(@PathVariable Long userId) {
-        List<UserOrganizationRole> roles = roleRepository.findByUserId(userId);
         
-        List<Organization> userOrgs = roles.stream()
-                .map(UserOrganizationRole::getOrganization)
-                .collect(Collectors.toList());
-                
-        return ResponseEntity.ok(userOrgs);
-    }
+@GetMapping("/user/{userId}")
+public ResponseEntity<?> getUserOrganizations(@PathVariable Long userId, HttpServletRequest request) {
+    // // Debug logging
+    // System.out.println("=== GET /organizations/user/" + userId + " ===");
+    // System.out.println("Auth header: " + request.getHeader("Authorization"));
+    
+    // Get current authenticated user
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    // System.out.println("Authenticated user: " + (auth != null ? auth.getName() : "null"));
+    // System.out.println("Authorities: " + (auth != null ? auth.getAuthorities() : "null"));
+    
+    List<UserOrganizationRole> roles = roleRepository.findByUserId(userId);
+    
+    List<Organization> userOrgs = roles.stream()
+            .map(UserOrganizationRole::getOrganization)
+            .collect(Collectors.toList());
+            
+    return ResponseEntity.ok(userOrgs);
+}
     
     @GetMapping("/{id}")
     public ResponseEntity<Organization> getOrganizationById(@PathVariable Long id) {
@@ -122,8 +131,8 @@ public class OrganizationController {
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
-    
     @PutMapping("/{orgId}")
+    @PreAuthorize("hasRole('CLIENT')")
     public ResponseEntity<?> updateOrganization(
             @PathVariable Long orgId,
             @RequestBody CreateOrganizationRequest updatedOrg,

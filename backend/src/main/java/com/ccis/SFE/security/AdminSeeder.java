@@ -28,6 +28,8 @@ public class AdminSeeder implements CommandLineRunner {
             adminUser.setEmail("admin@example.com");
             adminUser.setPassword(passwordEncoder.encode("pw"));
             adminUser.setRole("ROLE_ADMIN");
+            adminUser.setNom("Admin");
+            adminUser.setPrenom("System");
             adminUser.setAccountStatus(User.AccountStatus.ACTIVE);
             userRepository.save(adminUser);
             System.out.println("✅ Default Admin account created! Username: admin | Password: pw");
@@ -36,6 +38,8 @@ public class AdminSeeder implements CommandLineRunner {
             User employeeUser = new User();
             employeeUser.setUsername("employee");
             employeeUser.setEmail("employee@example.com");
+            employeeUser.setNom("Bninha");
+            employeeUser.setPrenom("Rachid");
             employeeUser.setPassword(passwordEncoder.encode("pw"));
             employeeUser.setRole("ROLE_EMPLOYEE");
             employeeUser.setAccountStatus(User.AccountStatus.ACTIVE);

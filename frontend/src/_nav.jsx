@@ -8,7 +8,8 @@ import {
     cilPeople,
     cilChart,
     cilUser,
-    cilSettings
+    cilSettings,
+    cilInfo
 } from '@coreui/icons'
 import { CNavItem, CNavTitle } from '@coreui/react'
 
@@ -50,9 +51,15 @@ export const navEmployee = [
     },
     {
         component: CNavItem,
-        name: 'Annuaire des clients',
+        name: 'Annuaire des organisations',
         to: '/employee/organisations',
         icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
+    },
+    {
+        component: CNavItem,
+        name: 'Gestion des utilisateurs',
+        to: '/employee/clients',
+        icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
     },
 ];
 
@@ -76,10 +83,17 @@ export const navAdmin = [
         to: '/admin/users',
         icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
     },
+            {
+        component: CNavItem,
+        name: 'Annuaire des organisations',
+        to: '/employee/organisations',
+        icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
+    },
     {
         component: CNavItem,
         name: 'Rapports & Analyses',
         to: '/admin/reports',
         icon: <CIcon icon={cilChart} customClassName="nav-icon" />,
     },
+
 ];

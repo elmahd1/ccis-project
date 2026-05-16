@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   CCard, CCardBody, CCardHeader, CCol, CRow,
   CButton, CSpinner, CFormInput, CFormSelect, CFormLabel,
-  CAlert, CFormTextarea
+  CAlert, CFormTextarea, CFormCheck
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
 import { cilSave, cilArrowLeft } from '@coreui/icons';
@@ -23,16 +23,22 @@ const ModifyOrganizations = () => {
   const [formData, setFormData] = useState({
     name: '',
     type: 'ENTREPRISE',
+    // Entreprise fields
     ice: '',
     formeJuridique: '',
     secteurActivite: '',
+    taille: '',
+    activite: '',
+    // Common fields
     adresse: '',
     ville: '',
     telFixe: '',
     telGsm: '',
     emailContact: '',
     siteWeb: '',
-    description: ''
+    description: '',
+    // Association specific
+    isOfficiallyCreated: false
   });
 
   useEffect(() => {
@@ -53,16 +59,22 @@ const ModifyOrganizations = () => {
       setFormData({
         name: org.name || '',
         type: org.type || 'ENTREPRISE',
+        // Entreprise fields
         ice: org.ice || '',
         formeJuridique: org.formeJuridique || '',
         secteurActivite: org.secteurActivite || '',
+        taille: org.taille || '',
+        activite: org.activite || '',
+        // Common fields
         adresse: org.adresse || '',
         ville: org.ville || '',
         telFixe: org.telFixe || '',
         telGsm: org.telGsm || '',
         emailContact: org.emailContact || '',
         siteWeb: org.siteWeb || '',
-        description: org.description || ''
+        description: org.description || '',
+        // Association specific
+        isOfficiallyCreated: org.officiallyCreated || false
       });
     } catch (error) {
       console.error("Error fetching organization:", error);
@@ -73,8 +85,11 @@ const ModifyOrganizations = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -89,7 +104,18 @@ const ModifyOrganizations = () => {
     setError(null);
     
     try {
-      await axiosInstance.put(`/organizations/${id}`, formData);
+      // Prepare payload based on organization type
+      const payload = { ...formData };
+      
+      // For ASSOCIATION: remove fields that are not relevant
+      if (formData.type === 'ASSOCIATION') {
+        delete payload.ice;
+        delete payload.formeJuridique;
+        delete payload.secteurActivite;
+        delete payload.taille;
+      }
+      
+      await axiosInstance.put(`/organizations/${id}`, payload);
       setSuccess("Organisation mise à jour avec succès");
       
       // Redirect after 2 seconds
@@ -98,7 +124,7 @@ const ModifyOrganizations = () => {
       }, 2000);
     } catch (err) {
       console.error("Error updating organization:", err);
-      setError("Erreur lors de la mise à jour. Veuillez réessayer.");
+      setError(err.response?.data?.error || "Erreur lors de la mise à jour. Veuillez réessayer.");
     } finally {
       setSaving(false);
     }
@@ -112,6 +138,8 @@ const ModifyOrganizations = () => {
       </div>
     );
   }
+
+  const isAssociation = formData.type === 'ASSOCIATION';
 
   return (
     <CRow className="justify-content-center">
@@ -159,31 +187,88 @@ const ModifyOrganizations = () => {
                     <option value="ASSOCIATION">Association</option>
                   </CFormSelect>
                 </CCol>
-                <CCol md={6} className="mb-3">
-                  <CFormLabel className="fw-semibold">ICE</CFormLabel>
+
+                {/* Association status - only for ASSOCIATION type */}
+                {isAssociation && (
+                  <CCol md={12} className="mb-3">
+                    <CFormLabel className="fw-semibold">Statut de l'association</CFormLabel>
+                    <div className="d-flex gap-4 mt-2">
+                      <CFormCheck
+                        id="officiallyCreated"
+                        label="Association déjà créée"
+                        checked={formData.isOfficiallyCreated === true}
+                        onChange={() => setFormData(prev => ({ ...prev, isOfficiallyCreated: true }))}
+                      />
+                      <CFormCheck
+                        id="notOfficiallyCreated"
+                        label="Association en cours de création"
+                        checked={formData.isOfficiallyCreated === false}
+                        onChange={() => setFormData(prev => ({ ...prev, isOfficiallyCreated: false }))}
+                      />
+                    </div>
+                    <small className="text-muted">
+                      {formData.isOfficiallyCreated 
+                        ? "L'association a déjà son récépissé et est officiellement déclarée."
+                        : "L'association est en cours de constitution."}
+                    </small>
+                  </CCol>
+                )}
+
+                {/* ENTREPRISE specific fields - only for ENTREPRISE type */}
+                {!isAssociation && (
+                  <>
+                    <CCol md={6} className="mb-3">
+                      <CFormLabel className="fw-semibold">ICE</CFormLabel>
+                      <CFormInput 
+                        name="ice"
+                        value={formData.ice} 
+                        onChange={handleInputChange} 
+                        placeholder="Identifiant Commun de l'Entreprise"
+                      />
+                    </CCol>
+                    <CCol md={6} className="mb-3">
+                      <CFormLabel className="fw-semibold">Forme Juridique</CFormLabel>
+                      <CFormInput 
+                        name="formeJuridique"
+                        value={formData.formeJuridique} 
+                        onChange={handleInputChange} 
+                        placeholder="SARL, SA, Auto-entrepreneur..."
+                      />
+                    </CCol>
+                    <CCol md={6} className="mb-3">
+                      <CFormLabel className="fw-semibold">Secteur d'Activité</CFormLabel>
+                      <CFormInput 
+                        name="secteurActivite"
+                        value={formData.secteurActivite} 
+                        onChange={handleInputChange} 
+                        placeholder="Tech, Commerce, Agriculture..."
+                      />
+                    </CCol>
+                    <CCol md={6} className="mb-3">
+                      <CFormLabel className="fw-semibold">Taille</CFormLabel>
+                      <CFormSelect 
+                        name="taille"
+                        value={formData.taille} 
+                        onChange={handleInputChange}
+                      >
+                        <option value="">Sélectionner la taille</option>
+                        <option value="MICRO">Micro (0-9 employés)</option>
+                        <option value="PETITE">Petite (10-49 employés)</option>
+                        <option value="MOYENNE">Moyenne (50-249 employés)</option>
+                        <option value="GRANDE">Grande (250+ employés)</option>
+                      </CFormSelect>
+                    </CCol>
+                  </>
+                )}
+
+                {/* Common fields for both types */}
+                <CCol md={12} className="mb-3">
+                  <CFormLabel className="fw-semibold">Activité détaillée</CFormLabel>
                   <CFormInput 
-                    name="ice"
-                    value={formData.ice} 
+                    name="activite"
+                    value={formData.activite} 
                     onChange={handleInputChange} 
-                    placeholder="Identifiant Commun de l'Entreprise"
-                  />
-                </CCol>
-                <CCol md={6} className="mb-3">
-                  <CFormLabel className="fw-semibold">Forme Juridique</CFormLabel>
-                  <CFormInput 
-                    name="formeJuridique"
-                    value={formData.formeJuridique} 
-                    onChange={handleInputChange} 
-                    placeholder="SARL, SA, Association..."
-                  />
-                </CCol>
-                <CCol md={6} className="mb-3">
-                  <CFormLabel className="fw-semibold">Secteur d'Activité</CFormLabel>
-                  <CFormInput 
-                    name="secteurActivite"
-                    value={formData.secteurActivite} 
-                    onChange={handleInputChange} 
-                    placeholder="Tech, Commerce, Éducation..."
+                    placeholder="Description détaillée de l'activité"
                   />
                 </CCol>
                 <CCol md={6} className="mb-3">
@@ -210,7 +295,7 @@ const ModifyOrganizations = () => {
                     name="telFixe"
                     value={formData.telFixe} 
                     onChange={handleInputChange} 
-                    placeholder="Numéro de téléphone fixe"
+                    placeholder="05 XX XX XX XX"
                   />
                 </CCol>
                 <CCol md={6} className="mb-3">
@@ -219,7 +304,7 @@ const ModifyOrganizations = () => {
                     name="telGsm"
                     value={formData.telGsm} 
                     onChange={handleInputChange} 
-                    placeholder="Numéro de téléphone GSM"
+                    placeholder="06 XX XX XX XX"
                   />
                 </CCol>
                 <CCol md={6} className="mb-3">

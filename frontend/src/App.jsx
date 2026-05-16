@@ -24,9 +24,13 @@ const Register = React.lazy(() => import('./views/pages/register/Register'))
 const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
 const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
 
-// Auth Pages (NEW)
+// Auth Pages
 const ProfileCompletion = React.lazy(() => import('./views/client/ProfileCompletion'))
 const PendingActivation = React.lazy(() => import('./views/client/PendingActivation'))
+
+// Employee Pages - IMPORTS DÉPLACÉS ICI (en haut du fichier)
+const EmployeeDemandeDetail = React.lazy(() => import('./views/employee/EmployeeDemandeDetail'))
+const EmployeeClientManagement = React.lazy(() => import('./views/employee/EmployeeClientManagement'))
 
 /**
  * Client Account Guard Component
@@ -91,11 +95,12 @@ const App = () => {
           <Route exact path="/404" name="Page 404" element={<Page404 />} />
           <Route exact path="/500" name="Page 500" element={<Page500 />} />
           
-          {/* NEW: Account management routes (public) */}
+          {/* Account management routes (public) */}
           <Route exact path="/complete-profile/:userId" name="Complete Profile" element={<ProfileCompletion />} />
           <Route exact path="/pending-activation" name="Pending Activation" element={<PendingActivation />} />
+        
           
-          {/* Protected routes with account status guard for clients */}
+          {/* Protected routes wrapper */}
           <Route
             path="*"
             name="Home"

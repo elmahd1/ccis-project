@@ -5,6 +5,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import com.ccis.SFE.entity.User;
 import com.ccis.SFE.repository.UserRepository;
+import com.ccis.SFE.security.CustomUserDetails;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -20,10 +21,10 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    // In a real application, inject this from application.properties
-    // Must be at least 256 bits (32 characters) long for HS256
+    // in a production, we inject this from application.properties
+    // must be at least 256 bits (32 characters) long for HS256
     private final String SECRET_KEY = "my_super_secret_key_which_must_be_very_long_and_secure";
-    private final long JWT_EXPIRATION_MS = 86400000; 
+    private final long JWT_EXPIRATION_MS = 86400000; // 24 hours
     
     @Autowired
     private UserRepository userRepository; 
@@ -41,15 +42,25 @@ public String generateToken(UserDetails userDetails) {
             .orElse("ROLE_CLIENT");
     claims.put("role", role);
     
-    // Fetch the actual user from database to get the ID
-    try {
-        User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
-        if (user != null) {
-            claims.put("id", user.getId());
-            claims.put("userId", user.getId());
+    // Try to get user ID from the CustomUserDetails
+    Long userId = null;
+    if (userDetails instanceof CustomUserDetails) {
+        userId = ((CustomUserDetails) userDetails).getId();
+    } else {
+        // Fallback: fetch from database
+        try {
+            User user = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
+            if (user != null) {
+                userId = user.getId();
+            }
+        } catch (Exception e) {
+            System.out.println("Could not fetch user ID: " + e.getMessage());
         }
-    } catch (Exception e) {
-        System.out.println("Could not fetch user ID: " + e.getMessage());
+    }
+    
+    if (userId != null) {
+        claims.put("id", userId);
+        claims.put("userId", userId);
     }
     
     return Jwts.builder()
@@ -60,7 +71,6 @@ public String generateToken(UserDetails userDetails) {
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
 }
-    
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

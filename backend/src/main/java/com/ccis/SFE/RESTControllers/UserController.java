@@ -42,7 +42,7 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<List<User>> getAllUsers() {
         List<User> users = userRepository.findAll();
         System.out.println("Fetched all users: " + users.size());
@@ -166,4 +166,5 @@ public class UserController {
             "userId", user.getId()
         ));
     }
+    
 }

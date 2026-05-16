@@ -33,8 +33,8 @@ const fetchHistory = async () => {
       const response = await axiosInstance.get(`/client/demandes/history/user/${user.id}`);
       const { demarches, espaces, salles } = response.data;
       allDemandes = [
-        ...(demarches || []).map(d => ({ ...d, category: 'Administrative' })),
-        ...(espaces || []).map(e => ({ ...e, category: 'Espace Entreprise' })),
+        ...(demarches || []).map(d => ({ ...d, category: 'Accueil Ressortissant' })),
+        ...(espaces || []).map(e => ({ ...e, category: 'Renseignements' })),
         ...(salles || []).map(s => ({ ...s, category: 'Réservation Salle' }))
       ];
     } else {
@@ -43,8 +43,8 @@ const fetchHistory = async () => {
         const response = await axiosInstance.get(`/client/demandes/history/${org.id}`);
         const { demarches, espaces, salles } = response.data;
         allDemandes.push(
-          ...(demarches || []).map(d => ({ ...d, category: 'Administrative', orgName: org.name })),
-          ...(espaces || []).map(e => ({ ...e, category: 'Espace Entreprise', orgName: org.name })),
+          ...(demarches || []).map(d => ({ ...d, category: 'Accueil Ressortissant', orgName: org.name })),
+          ...(espaces || []).map(e => ({ ...e, category: 'Renseignements', orgName: org.name })),
           ...(salles || []).map(s => ({ ...s, category: 'Réservation Salle', orgName: org.name }))
         );
       }

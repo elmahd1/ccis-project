@@ -18,7 +18,7 @@ import CIcon from '@coreui/icons-react'
 import { useAuth } from '../../context/AuthContext'
 
 
-import avatar8 from '../../assets/images/avatars/3.jpg'
+import avatar8 from '../../assets/images/avatars/image.png'
 
 const AppHeaderDropdown = () => {
   const { logout, user } = useAuth()

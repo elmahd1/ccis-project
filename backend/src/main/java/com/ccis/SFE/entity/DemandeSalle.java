@@ -9,11 +9,8 @@ public class DemandeSalle extends BaseDemande {
     
     private LocalDateTime reunion;
     private String activiteOuSujet;
-    private String membres;
+    private String [] membres;
     
-    @Column(length = 500)
-    private String motifRejet;
-
     public LocalDateTime getReunion() {
         return reunion;
     }
@@ -26,16 +23,10 @@ public class DemandeSalle extends BaseDemande {
     public void setActiviteOuSujet(String activiteOuSujet) {
         this.activiteOuSujet = activiteOuSujet;
     }
-    public String getMembres() {
+    public String [] getMembres() {
         return membres;
     }
-    public void setMembres(String membres) {
+    public void setMembres(String [] membres) {
         this.membres = membres;
-    }
-    public String getMotifRejet() {
-        return motifRejet;
-    }
-    public void setMotifRejet(String motifRejet) {
-        this.motifRejet = motifRejet;
     }
 }

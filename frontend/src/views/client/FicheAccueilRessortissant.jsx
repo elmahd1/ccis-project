@@ -6,7 +6,7 @@ import {
     CRow, CSpinner, CAlert, CFormSelect, CFormTextarea, CFormLabel
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilArrowLeft, cilSave, cilDocument } from '@coreui/icons';
+import { cilArrowLeft, cilSave, cilDescription } from '@coreui/icons';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
 
@@ -96,7 +96,7 @@ const FicheAccueilRessortissant = () => {
 
                 <CCard className="shadow-sm border-info border-top-3">
                     <CCardHeader className="bg-light">
-                        <CIcon icon={cilDocument} className="me-2" />
+                        <CIcon icon={cilDescription} className="me-2" />
                         <strong>Formulaire d'accueil pour ressortissants</strong>
                     </CCardHeader>
                     <CCardBody>

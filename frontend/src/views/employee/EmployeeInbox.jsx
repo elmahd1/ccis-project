@@ -5,8 +5,9 @@ import {
   CTabContent, CTabPane, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter, 
   CFormTextarea, CBadge
 } from '@coreui/react';
-import { cilCheckCircle, cilBan, cilCloudDownload } from '@coreui/icons';
+import { cilCheckCircle, cilBan, cilCloudDownload, cilInfo } from '@coreui/icons';
 import CIcon from '@coreui/icons-react';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 
 const EmployeeInbox = () => {
@@ -15,6 +16,7 @@ const EmployeeInbox = () => {
   const [loading, setLoading] = useState(true);
   const [rejectModal, setRejectModal] = useState(false);
   const [rejectInfo, setRejectInfo] = useState({ type: '', id: '', observation: '' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPendingRequests();
@@ -84,6 +86,24 @@ const EmployeeInbox = () => {
     }
   };
 
+  const getTypeDisplayName = (type) => {
+    switch (type) {
+      case 'administrative': return "Fiche d'Accueil Ressortissant";
+      case 'espace': return "Fiche de Renseignements";
+      case 'salle': return "Demande de Salle";
+      default: return type;
+    }
+  };
+
+  const getTypeForNavigation = (type) => {
+    switch (type) {
+      case 'administrative': return 'administrative';
+      case 'espace': return 'espace';
+      case 'salle': return 'salle';
+      default: return type;
+    }
+  };
+
   const renderTable = (type, data) => {
     if (loading) return <div className="text-center p-4"><CSpinner /></div>;
     if (data.length === 0) return <p className="text-center text-muted p-4">Aucune demande en attente.</p>;
@@ -103,24 +123,56 @@ const EmployeeInbox = () => {
           {data.map((item) => (
             <CTableRow key={item.id}>
               <CTableDataCell>#{item.id}</CTableDataCell>
-              <CTableDataCell><strong>{item.organizationName || item.organization?.name}</strong></CTableDataCell>
               <CTableDataCell>
-                 {type === 'administrative' && item.objetVisite}
-                 {type === 'espace' && item.tailleEntreprise}
-                 {type === 'salle' && item.activiteOuSujet}
+                <strong>{item.organizationName || item.organization?.name}</strong>
+              </CTableDataCell>
+              <CTableDataCell>
+                {type === 'administrative' && item.objetVisite}
+                {type === 'espace' && item.tailleEntreprise}
+                {type === 'salle' && item.activiteOuSujet}
               </CTableDataCell>
               <CTableDataCell>{new Date(item.createdAt).toLocaleDateString()}</CTableDataCell>
               <CTableDataCell className="text-end">
-                <CButton color="primary" size="sm" className="me-2" onClick={() => handleDownload(type, item.id)}>
-                  <CIcon icon={cilDownload} className="me-1" /> Télécharger
+                {/* Bouton Voir détails - NOUVEAU */}
+                <CButton 
+                  color="info" 
+                  size="sm" 
+                  variant="ghost" 
+                  className="me-2"
+                  onClick={() => navigate(`/employee/demande/${getTypeForNavigation(type)}/${item.id}`)}
+                  title="Voir les détails complets"
+                >
+                  <CIcon icon={cilInfo} className="me-1" /> Détails
                 </CButton>
-                <CButton color="success" size="sm" className="me-2 text-white" onClick={() => handleValidate(type, item.id)}>
+                <CButton 
+                  color="primary" 
+                  size="sm" 
+                  variant="outline" 
+                  className="me-2" 
+                  onClick={() => handleDownload(type, item.id)}
+                  title="Télécharger"
+                >
+                  <CIcon icon={cilCloudDownload} className="me-1" /> PDF
+                </CButton>
+                <CButton 
+                  color="success" 
+                  size="sm" 
+                  className="me-2 text-white" 
+                  onClick={() => handleValidate(type, item.id)}
+                  title="Valider"
+                >
                   <CIcon icon={cilCheckCircle} className="me-1" /> Valider
                 </CButton>
-                <CButton color="danger" size="sm" variant="outline" onClick={() => { 
-                  setRejectInfo({ type, id: item.id, observation: '' }); 
-                  setRejectModal(true); 
-                }}>
+                <CButton 
+                  color="danger" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => { 
+                    setRejectInfo({ type, id: item.id, observation: '' }); 
+                    setRejectModal(true); 
+                  }}
+                  title="Rejeter"
+                >
                   <CIcon icon={cilBan} className="me-1" /> Rejeter
                 </CButton>
               </CTableDataCell>
@@ -139,17 +191,17 @@ const EmployeeInbox = () => {
           <CNav variant="tabs" className="card-header-tabs m-0 border-bottom-0 p-2">
             <CNavItem>
               <CNavLink active={activeTab === 'administrative'} onClick={() => setActiveTab('administrative')} className="cursor-pointer">
-                Administratives <CBadge color="info" className="ms-2">{demarches.administrative.length}</CBadge>
+                {getTypeDisplayName('administrative')} <CBadge color="info" className="ms-2">{demarches.administrative.length}</CBadge>
               </CNavLink>
             </CNavItem>
             <CNavItem>
               <CNavLink active={activeTab === 'espace'} onClick={() => setActiveTab('espace')} className="cursor-pointer">
-                Espace Entreprise <CBadge color="info" className="ms-2">{demarches.espace.length}</CBadge>
+                {getTypeDisplayName('espace')} <CBadge color="info" className="ms-2">{demarches.espace.length}</CBadge>
               </CNavLink>
             </CNavItem>
             <CNavItem>
               <CNavLink active={activeTab === 'salle'} onClick={() => setActiveTab('salle')} className="cursor-pointer">
-                Demandes Salle <CBadge color="info" className="ms-2">{demarches.salle.length}</CBadge>
+                {getTypeDisplayName('salle')} <CBadge color="info" className="ms-2">{demarches.salle.length}</CBadge>
               </CNavLink>
             </CNavItem>
           </CNav>
@@ -163,6 +215,7 @@ const EmployeeInbox = () => {
         </CCardBody>
       </CCard>
 
+      {/* Reject Modal */}
       <CModal visible={rejectModal} onClose={() => setRejectModal(false)}>
         <CModalHeader closeButton><CModalTitle>Motif du rejet</CModalTitle></CModalHeader>
         <CModalBody>
@@ -172,10 +225,11 @@ const EmployeeInbox = () => {
             value={rejectInfo.observation}
             onChange={(e) => setRejectInfo({...rejectInfo, observation: e.target.value})}
           />
+          <small className="text-muted mt-2 d-block">Ce motif sera visible par le client</small>
         </CModalBody>
         <CModalFooter>
           <CButton color="secondary" variant="ghost" onClick={() => setRejectModal(false)}>Annuler</CButton>
-          <CButton color="danger" onClick={handleReject}>Confirmer</CButton>
+          <CButton color="danger" onClick={handleReject}>Confirmer le rejet</CButton>
         </CModalFooter>
       </CModal>
     </>

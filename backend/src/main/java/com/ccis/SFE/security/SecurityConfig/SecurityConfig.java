@@ -35,10 +35,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 // 2. Define role-based access here
-                .requestMatchers("/api/users/**").hasAuthority("ROLE_ADMIN") 
+                .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLOYEE") 
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .requestMatchers("/api/organizations/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_EMPLOYEE", "ROLE_CLIENT")
-                .requestMatchers("/api/employee/**").hasAnyAuthority("ROLE_EMPLOYEE")
+                .requestMatchers("/api/employee/**").hasAnyAuthority("ROLE_EMPLOYEE", "ROLE_ADMIN")
                 .anyRequest().authenticated()
             )
             // 3. Add the filter before the standard authentication filter

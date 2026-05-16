@@ -30,7 +30,7 @@ public abstract class BaseDemande {
     private LocalDateTime acceptedAt;
 
         @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "accepted_by", nullable = false)
+    @JoinColumn(name = "accepted_by", nullable = true)
     private User acceptedBy;
     
     @Transient

@@ -1,16 +1,14 @@
-// src/views/client/Workspaces.jsx - Updated with all Organization fields
 import React, { useState, useEffect } from 'react';
 import {
     CRow, CCol, CCard, CCardBody, CCardTitle, CCardText, CButton,
     CSpinner, CModal, CModalHeader, CModalTitle, CModalBody, CModalFooter,
-    CFormInput, CFormSelect, CBadge, CFormTextarea, CFormLabel
+    CFormInput, CFormSelect, CBadge, CFormTextarea, CFormLabel, CFormCheck
 } from '@coreui/react';
 import CIcon from '@coreui/icons-react';
-import { cilPlus, cilBuilding, cilArrowRight, cilBriefcase, cilInstitution, cilPencil } from '@coreui/icons';
+import { cilPlus, cilBuilding, cilArrowRight, cilBriefcase, cilInstitution, cilPencil, cilUserPlus, cilTrash } from '@coreui/icons';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuth } from '../../context/AuthContext';
-
 const Workspaces = () => {
     const { user, needsProfileCompletion, needsActivation, isActive } = useAuth();
     const navigate = useNavigate();
@@ -20,13 +18,16 @@ const Workspaces = () => {
     const [visible, setVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [currentStep, setCurrentStep] = useState(1); // 1: Type selection, 2: Form
 
     // Check if user can create organization
     const canCreateOrganization = isActive;
 
     const [newOrg, setNewOrg] = useState({ 
-        name: '', 
+        // Step 1
         type: 'ENTREPRISE',
+        // Step 2 - Common fields
+        name: '',
         ice: '',
         formeJuridique: '',
         secteurActivite: '',
@@ -38,7 +39,13 @@ const Workspaces = () => {
         telGsm: '',
         emailContact: '',
         siteWeb: '',
-        description: ''
+        description: '',
+        // Association specific
+        isOfficiallyCreated: false,
+        // Members for association (not yet created)
+        membre1: '',
+        membre2: '',
+        membre3: ''
     });
 
     useEffect(() => {
@@ -47,24 +54,30 @@ const Workspaces = () => {
         }
     }, [user]);
 
-    const fetchWorkspaces = async () => {
-        try {
-            setLoading(true);
-            const response = await axiosInstance.get(`/organizations/user/${user?.id}`);
-            console.log("Workspaces fetched:", response.data);
-            setWorkspaces(response.data);
-        } catch (error) {
-            console.error("Erreur lors de la récupération des espaces", error);
-            if (error.response?.status === 403) {
-                // Handle account status issues
-                if (error.response?.data?.error?.includes('activé')) {
-                    navigate('/pending-activation');
-                }
+const [deleteConfirm, setDeleteConfirm] = useState({ visible: false, orgId: null, orgName: '' });
+const [deleting, setDeleting] = useState(false);
+
+
+const fetchWorkspaces = async () => {
+    try {
+        setLoading(true);
+        //  this:
+        // const response = await axiosInstance.get(`/organizations/user/${user?.id}`);
+        // To this:
+const response = await axiosInstance.get(`/organizations/user/${user?.id}`);
+        console.log("Workspaces fetched:", response.data);
+        setWorkspaces(response.data);
+    } catch (error) {
+        console.error("Erreur lors de la récupération des espaces", error);
+        if (error.response?.status === 403) {
+            if (error.response?.data?.error?.includes('activé')) {
+                navigate('/pending-activation');
             }
-        } finally {
-            setLoading(false);
         }
-    };
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleCreateWorkspace = async () => {
         setIsSubmitting(true);
@@ -77,14 +90,37 @@ const Workspaces = () => {
         }
         
         try {
-            await axiosInstance.post(`/organizations/create?userId=${user?.id}`, newOrg);
+            // Prepare payload based on organization type
+            const payload = { ...newOrg };
+            
+            // For ASSOCIATION: remove fields that are not relevant
+            if (newOrg.type === 'ASSOCIATION') {
+                // Delete business-specific fields
+                delete payload.ice;
+                delete payload.formeJuridique;
+                delete payload.secteurActivite;
+                delete payload.taille;
+                
+                // For associations that are NOT officially created, add members
+                if (!newOrg.isOfficiallyCreated) {
+                    const members = [newOrg.membre1, newOrg.membre2, newOrg.membre3]
+                        .filter(m => m && m.trim());
+                    if (members.length > 0) {
+                        payload.membres = members;
+                    }
+                }
+            }
+            
+            // Remove member fields that are not needed for backend
+            delete payload.membre1;
+            delete payload.membre2;
+            delete payload.membre3;
+            
+            console.log("Sending payload:", payload);
+            
+            await axiosInstance.post(`/organizations/create?userId=${user?.id}`, payload);
             setVisible(false);
-            setNewOrg({ 
-                name: '', type: 'ENTREPRISE', ice: '', formeJuridique: '', 
-                secteurActivite: '', activite: '', taille: '', adresse: '', 
-                ville: '', telFixe: '', telGsm: '', emailContact: '', 
-                siteWeb: '', description: '' 
-            });
+            resetForm();
             fetchWorkspaces();
         } catch (error) {
             console.error("Erreur lors de la création", error);
@@ -92,6 +128,60 @@ const Workspaces = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleDeleteOrganization = async (orgId) => {
+    setDeleting(true);
+    try {
+        await axiosInstance.delete(`/organizations/${orgId}`, {
+            params: { userId: user?.id }
+        });
+        // Refresh workspaces list
+        await fetchWorkspaces();
+        setDeleteConfirm({ visible: false, orgId: null, orgName: '' });
+    } catch (error) {
+        console.error("Error deleting organization:", error);
+        alert(error.response?.data?.error || "Erreur lors de la suppression de l'organisation");
+    } finally {
+        setDeleting(false);
+    }
+};
+
+    const resetForm = () => {
+        setNewOrg({ 
+            type: 'ENTREPRISE',
+            name: '',
+            ice: '',
+            formeJuridique: '',
+            secteurActivite: '',
+            activite: '',
+            taille: '',
+            adresse: '',
+            ville: '',
+            telFixe: '',
+            telGsm: '',
+            emailContact: '',
+            siteWeb: '',
+            description: '',
+            isOfficiallyCreated: false,
+            membre1: '',
+            membre2: '',
+            membre3: ''
+        });
+        setCurrentStep(1);
+    };
+
+    const handleTypeSelect = (type) => {
+        setNewOrg(prev => ({ ...prev, type }));
+        setCurrentStep(2);
+    };
+
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setNewOrg(prev => ({ 
+            ...prev, 
+            [name]: type === 'checkbox' ? checked : value 
+        }));
     };
 
     // Handle account status messages
@@ -122,6 +212,258 @@ const Workspaces = () => {
     }
 
     if (loading) return <div className="text-center mt-5"><CSpinner color="primary" /></div>;
+
+    // Render type selection step
+    const renderTypeSelection = () => (
+        <CRow className="g-4">
+            <CCol md={6}>
+                <CCard 
+                    className="text-center h-100 cursor-pointer border-primary border-2"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleTypeSelect('ENTREPRISE')}
+                >
+                    <CCardBody className="py-5">
+                        <CIcon icon={cilBriefcase} size="3xl" className="text-info mb-3" />
+                        <h4>Entreprise</h4>
+                        <p className="text-muted">
+                            Société commerciale, SARL, SA, Auto-entrepreneur...
+                        </p>
+                        <CBadge color="info">Sélectionner</CBadge>
+                    </CCardBody>
+                </CCard>
+            </CCol>
+            <CCol md={6}>
+                <CCard 
+                    className="text-center h-100 cursor-pointer"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handleTypeSelect('ASSOCIATION')}
+                >
+                    <CCardBody className="py-5">
+                        <CIcon icon={cilInstitution} size="3xl" className="text-success mb-3" />
+                        <h4>Association</h4>
+                        <p className="text-muted">
+                            Association à but non lucratif, ONG, Fondation...
+                        </p>
+                        <CBadge color="success">Sélectionner</CBadge>
+                    </CCardBody>
+                </CCard>
+            </CCol>
+        </CRow>
+    );
+
+    // Render association status selection (for ASSOCIATION type)
+    const renderAssociationStatus = () => (
+        <div className="mb-4">
+            <CFormLabel className="fw-semibold">Statut de l'association</CFormLabel>
+            <div className="d-flex gap-4 mt-2">
+                <CFormCheck
+                    id="officiallyCreated"
+                    label="Association déjà créée"
+                    checked={newOrg.isOfficiallyCreated === true}
+                    onChange={() => setNewOrg(prev => ({ ...prev, isOfficiallyCreated: true }))}
+                />
+                <CFormCheck
+                    id="notOfficiallyCreated"
+                    label="Association en cours de création"
+                    checked={newOrg.isOfficiallyCreated === false}
+                    onChange={() => setNewOrg(prev => ({ ...prev, isOfficiallyCreated: false }))}
+                />
+            </div>
+            <small className="text-muted">
+                {newOrg.isOfficiallyCreated 
+                    ? "Vous êtes le président/fondateur de l'association déjà déclarée."
+                    : "Vous êtes le promoteur de l'association en cours de constitution. Vous pouvez ajouter d'autres membres fondateurs."}
+            </small>
+        </div>
+    );
+
+    // Render members section (only for associations NOT officially created)
+    const renderMembersSection = () => {
+        if (newOrg.type !== 'ASSOCIATION' || newOrg.isOfficiallyCreated) return null;
+        
+        return (
+            <>
+                <hr className="my-4" />
+                <h5 className="mb-3">
+                    <CIcon icon={cilUserPlus} className="me-2" />
+                    Membres fondateurs
+                </h5>
+                <p className="small text-muted mb-3">
+                    Vous êtes considéré comme le président/fondateur. Vous pouvez ajouter jusqu'à 2 autres membres fondateurs.
+                </p>
+                <CRow>
+                    <CCol md={12} className="mb-3">
+                        <CFormInput
+                            label="Membre fondateur 1 (Vous - Président) *"
+                            value={user?.prenom && user?.nom ? `${user.prenom} ${user.nom}` : user?.username}
+                            disabled
+                            readOnly
+                        />
+                        <small className="text-muted">Votre compte est automatiquement ajouté comme président</small>
+                    </CCol>
+                    <CCol md={6} className="mb-3">
+                        <CFormInput
+                            name="membre1"
+                            label="Membre fondateur 2"
+                            value={newOrg.membre1}
+                            onChange={handleInputChange}
+                            placeholder="Nom et prénom du deuxième membre"
+                        />
+                    </CCol>
+                    <CCol md={6} className="mb-3">
+                        <CFormInput
+                            name="membre2"
+                            label="Membre fondateur 3"
+                            value={newOrg.membre2}
+                            onChange={handleInputChange}
+                            placeholder="Nom et prénom du troisième membre"
+                        />
+                    </CCol>
+                </CRow>
+            </>
+        );
+    };
+
+    // Render form fields (common for both types)
+    const renderFormFields = () => (
+        <>
+            <CRow>
+                <CCol md={12} className="mb-3">
+                    <CFormLabel className="fw-semibold">Nom *</CFormLabel>
+                    <CFormInput 
+                        name="name"
+                        value={newOrg.name} 
+                        onChange={handleInputChange} 
+                        placeholder="Nom de l'organisation"
+                        required 
+                    />
+                </CCol>
+                
+                {/* Fields for ENTREPRISE only */}
+                {newOrg.type === 'ENTREPRISE' && (
+                    <>
+                        <CCol md={6} className="mb-3">
+                            <CFormLabel className="fw-semibold">ICE</CFormLabel>
+                            <CFormInput 
+                                name="ice"
+                                value={newOrg.ice} 
+                                onChange={handleInputChange} 
+                                placeholder="Identifiant Commun de l'Entreprise"
+                            />
+                        </CCol>
+                        <CCol md={6} className="mb-3">
+                            <CFormLabel className="fw-semibold">Forme Juridique</CFormLabel>
+                            <CFormInput 
+                                name="formeJuridique"
+                                value={newOrg.formeJuridique} 
+                                onChange={handleInputChange} 
+                                placeholder="SARL, SA, Auto-entrepreneur..."
+                            />
+                        </CCol>
+                        <CCol md={6} className="mb-3">
+                            <CFormLabel className="fw-semibold">Secteur d'Activité</CFormLabel>
+                            <CFormInput 
+                                name="secteurActivite"
+                                value={newOrg.secteurActivite} 
+                                onChange={handleInputChange} 
+                                placeholder="Tech, Commerce, Agriculture..."
+                            />
+                        </CCol>
+                        <CCol md={6} className="mb-3">
+                            <CFormLabel className="fw-semibold">Taille</CFormLabel>
+                            <CFormSelect 
+                                name="taille"
+                                value={newOrg.taille} 
+                                onChange={handleInputChange}
+                            >
+                                <option value="">Sélectionner la taille</option>
+                                <option value="MICRO">Micro (0-9 employés)</option>
+                                <option value="PETITE">Petite (10-49 employés)</option>
+                                <option value="MOYENNE">Moyenne (50-249 employés)</option>
+                                <option value="GRANDE">Grande (250+ employés)</option>
+                            </CFormSelect>
+                        </CCol>
+                    </>
+                )}
+                
+                {/* Common fields for both types */}
+                <CCol md={12} className="mb-3">
+                    <CFormLabel className="fw-semibold">Activité détaillée</CFormLabel>
+                    <CFormInput 
+                        name="activite"
+                        value={newOrg.activite} 
+                        onChange={handleInputChange} 
+                        placeholder="Description détaillée de l'activité"
+                    />
+                </CCol>
+                <CCol md={6} className="mb-3">
+                    <CFormLabel className="fw-semibold">Ville</CFormLabel>
+                    <CFormInput 
+                        name="ville"
+                        value={newOrg.ville} 
+                        onChange={handleInputChange} 
+                        placeholder="Casablanca, Rabat, Marrakech..."
+                    />
+                </CCol>
+                <CCol md={12} className="mb-3">
+                    <CFormLabel className="fw-semibold">Adresse Siège</CFormLabel>
+                    <CFormInput 
+                        name="adresse"
+                        value={newOrg.adresse} 
+                        onChange={handleInputChange} 
+                        placeholder="Adresse complète"
+                    />
+                </CCol>
+                <CCol md={6} className="mb-3">
+                    <CFormLabel className="fw-semibold">Téléphone Fixe</CFormLabel>
+                    <CFormInput 
+                        name="telFixe"
+                        value={newOrg.telFixe} 
+                        onChange={handleInputChange} 
+                        placeholder="05 XX XX XX XX"
+                    />
+                </CCol>
+                <CCol md={6} className="mb-3">
+                    <CFormLabel className="fw-semibold">Téléphone GSM</CFormLabel>
+                    <CFormInput 
+                        name="telGsm"
+                        value={newOrg.telGsm} 
+                        onChange={handleInputChange} 
+                        placeholder="06 XX XX XX XX"
+                    />
+                </CCol>
+                <CCol md={6} className="mb-3">
+                    <CFormLabel className="fw-semibold">Email Contact</CFormLabel>
+                    <CFormInput 
+                        type="email"
+                        name="emailContact"
+                        value={newOrg.emailContact} 
+                        onChange={handleInputChange} 
+                        placeholder="contact@entreprise.com"
+                    />
+                </CCol>
+                <CCol md={6} className="mb-3">
+                    <CFormLabel className="fw-semibold">Site Web</CFormLabel>
+                    <CFormInput 
+                        name="siteWeb"
+                        value={newOrg.siteWeb} 
+                        onChange={handleInputChange} 
+                        placeholder="https://www.entreprise.com"
+                    />
+                </CCol>
+                <CCol md={12} className="mb-3">
+                    <CFormLabel className="fw-semibold">Description</CFormLabel>
+                    <CFormTextarea 
+                        name="description"
+                        value={newOrg.description} 
+                        onChange={handleInputChange} 
+                        rows="2"
+                        placeholder="Brève description de l'organisation..."
+                    />
+                </CCol>
+            </CRow>
+        </>
+    );
 
     return (
         <>
@@ -175,14 +517,47 @@ const Workspaces = () => {
                                             >
                                                 <CIcon icon={cilPencil} />
                                             </CButton>
+                                            <CButton 
+                                                color="danger" 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteConfirm({ visible: true, orgId: org.id, orgName: org.name });
+                                                }}
+                                                title="Supprimer l'organisation"
+                                            >
+                                                <CIcon icon={cilTrash} />
+                                            </CButton>
                                         </div>
                                     </div>
                                     <CCardTitle className="mb-2 fs-5 fw-bold">{org.name}</CCardTitle>
-                                    <div className="small text-muted mb-3">
-                                        {org.ville && <div>📍 {org.ville}</div>}
-                                        {org.ice && <div>🆔 ICE: {org.ice}</div>}
-                                        {org.secteurActivite && <div>📊 {org.secteurActivite}</div>}
-                                    </div>
+<div className="small text-muted mb-3">
+    {org.ville && <div>📍 {org.ville}</div>}
+    
+    {/* Entreprise specific fields */}
+    {org.type === 'ENTREPRISE' && (
+        <>
+            {org.ice && <div>🆔 ICE: {org.ice}</div>}
+            {org.formeJuridique && <div>⚖️ {org.formeJuridique}</div>}
+            {org.secteurActivite && <div>📊 {org.secteurActivite}</div>}
+            {org.taille && <div>📏 Taille: {org.taille}</div>}
+            {org.activite && <div>📋 Activité: {org.activite}</div>}
+        </>
+    )}
+    
+    {/* Association specific fields */}
+    {org.type === 'ASSOCIATION' && (
+        <>
+            <div>{org.officiallyCreated ? '✅ Association déclarée' : '📝 En constitution'}</div>
+            {org.activite && <div>📋 {org.activite}</div>}
+        </>
+    )}
+    
+    {/* Contact info */}
+    {org.telGsm && <div>📱 {org.telGsm}</div>}
+    {org.emailContact && <div>📧 {org.emailContact}</div>}
+</div>
                                     <CButton 
                                         color="dark" 
                                         variant="ghost" 
@@ -198,143 +573,87 @@ const Workspaces = () => {
                 )}
             </CRow>
 
-            <CModal visible={visible} onClose={() => setVisible(false)} alignment="center" size="lg">
-                <CModalHeader onClose={() => setVisible(false)}>
-                    <CModalTitle>Nouvelle Organisation</CModalTitle>
+            {/* Create Organization Modal */}
+            <CModal visible={visible} onClose={() => { setVisible(false); resetForm(); }} alignment="center" size="lg">
+                <CModalHeader onClose={() => { setVisible(false); resetForm(); }}>
+                    <CModalTitle>
+                        {currentStep === 1 ? "Type d'organisation" : `Nouvelle ${newOrg.type === 'ASSOCIATION' ? 'Association' : 'Entreprise'}`}
+                    </CModalTitle>
                 </CModalHeader>
                 <CModalBody>
                     {error && <div className="alert alert-danger">{error}</div>}
-                    <CRow>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Nom *</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.name} 
-                                onChange={(e) => setNewOrg({...newOrg, name: e.target.value})} 
-                                required 
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Type</CFormLabel>
-                            <CFormSelect 
-                                value={newOrg.type} 
-                                onChange={(e) => setNewOrg({...newOrg, type: e.target.value})}
+                    
+                    {currentStep === 1 ? (
+                        renderTypeSelection()
+                    ) : (
+                        <>
+                            {/* Back button */}
+                            <CButton 
+                                color="link" 
+                                className="mb-3 p-0"
+                                onClick={() => setCurrentStep(1)}
                             >
-                                <option value="ENTREPRISE">Entreprise</option>
-                                <option value="ASSOCIATION">Association</option>
-                            </CFormSelect>
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">ICE</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.ice} 
-                                onChange={(e) => setNewOrg({...newOrg, ice: e.target.value})} 
-                                placeholder="Identifiant Commun de l'Entreprise"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Forme Juridique</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.formeJuridique} 
-                                onChange={(e) => setNewOrg({...newOrg, formeJuridique: e.target.value})} 
-                                placeholder="SARL, SA, Association..."
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Secteur d'Activité</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.secteurActivite} 
-                                onChange={(e) => setNewOrg({...newOrg, secteurActivite: e.target.value})} 
-                                placeholder="Tech, Commerce, Agriculture..."
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Taille</CFormLabel>
-                            <CFormSelect 
-                                value={newOrg.taille} 
-                                onChange={(e) => setNewOrg({...newOrg, taille: e.target.value})}
-                            >
-                                <option value="">Sélectionner la taille</option>
-                                <option value="MICRO">Micro (0-9 employés)</option>
-                                <option value="PETITE">Petite (10-49 employés)</option>
-                                <option value="MOYENNE">Moyenne (50-249 employés)</option>
-                                <option value="GRANDE">Grande (250+ employés)</option>
-                            </CFormSelect>
-                        </CCol>
-                        <CCol md={12} className="mb-3">
-                            <CFormLabel className="fw-semibold">Activité détaillée</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.activite} 
-                                onChange={(e) => setNewOrg({...newOrg, activite: e.target.value})} 
-                                placeholder="Description détaillée de l'activité"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Ville</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.ville} 
-                                onChange={(e) => setNewOrg({...newOrg, ville: e.target.value})} 
-                                placeholder="Casablanca, Rabat, Marrakech..."
-                            />
-                        </CCol>
-                        <CCol md={12} className="mb-3">
-                            <CFormLabel className="fw-semibold">Adresse Siège</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.adresse} 
-                                onChange={(e) => setNewOrg({...newOrg, adresse: e.target.value})} 
-                                placeholder="Adresse complète"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Téléphone Fixe</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.telFixe} 
-                                onChange={(e) => setNewOrg({...newOrg, telFixe: e.target.value})} 
-                                placeholder="05 XX XX XX XX"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Téléphone GSM</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.telGsm} 
-                                onChange={(e) => setNewOrg({...newOrg, telGsm: e.target.value})} 
-                                placeholder="06 XX XX XX XX"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Email Contact</CFormLabel>
-                            <CFormInput 
-                                type="email" 
-                                value={newOrg.emailContact} 
-                                onChange={(e) => setNewOrg({...newOrg, emailContact: e.target.value})} 
-                                placeholder="contact@entreprise.com"
-                            />
-                        </CCol>
-                        <CCol md={6} className="mb-3">
-                            <CFormLabel className="fw-semibold">Site Web</CFormLabel>
-                            <CFormInput 
-                                value={newOrg.siteWeb} 
-                                onChange={(e) => setNewOrg({...newOrg, siteWeb: e.target.value})} 
-                                placeholder="https://www.entreprise.com"
-                            />
-                        </CCol>
-                        <CCol md={12} className="mb-3">
-                            <CFormLabel className="fw-semibold">Description</CFormLabel>
-                            <CFormTextarea 
-                                value={newOrg.description} 
-                                onChange={(e) => setNewOrg({...newOrg, description: e.target.value})} 
-                                rows="2"
-                                placeholder="Brève description de l'organisation..."
-                            />
-                        </CCol>
-                    </CRow>
+                                ← Changer le type
+                            </CButton>
+                            
+                            {/* Association specific: ask if already created */}
+                            {newOrg.type === 'ASSOCIATION' && renderAssociationStatus()}
+                            
+                            {/* Form fields (with conditional fields for ENTREPRISE) */}
+                            {renderFormFields()}
+                            
+                            {/* Members section (only for association not yet created) */}
+                            {renderMembersSection()}
+                        </>
+                    )}
                 </CModalBody>
                 <CModalFooter>
-                    <CButton color="secondary" variant="ghost" onClick={() => setVisible(false)}>Annuler</CButton>
-                    <CButton color="primary" onClick={handleCreateWorkspace} disabled={isSubmitting || !newOrg.name}>
-                        {isSubmitting ? <CSpinner size="sm" /> : "Créer l'espace"}
-                    </CButton>
+                    {currentStep === 1 ? (
+                        <>
+                            <CButton color="secondary" variant="ghost" onClick={() => { setVisible(false); resetForm(); }}>
+                                Annuler
+                            </CButton>
+                        </>
+                    ) : (
+                        <>
+                            <CButton color="secondary" variant="ghost" onClick={() => setCurrentStep(1)}>
+                                Retour
+                            </CButton>
+                            <CButton color="primary" onClick={handleCreateWorkspace} disabled={isSubmitting || !newOrg.name}>
+                                {isSubmitting ? <CSpinner size="sm" /> : "Créer l'espace"}
+                            </CButton>
+                        </>
+                    )}
                 </CModalFooter>
             </CModal>
+            <CModal 
+    visible={deleteConfirm.visible} 
+    onClose={() => setDeleteConfirm({ visible: false, orgId: null, orgName: '' })}
+    alignment="center"
+>
+    <CModalHeader>
+        <CModalTitle>Confirmer la suppression</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+        <p>Êtes-vous sûr de vouloir supprimer l'organisation <strong>{deleteConfirm.orgName}</strong> ?</p>
+        <p className="text-danger">Cette action supprimera également toutes les demandes associées et ne peut pas être annulée.</p>
+    </CModalBody>
+    <CModalFooter>
+        <CButton 
+            color="secondary" 
+            onClick={() => setDeleteConfirm({ visible: false, orgId: null, orgName: '' })}
+        >
+            Annuler
+        </CButton>
+        <CButton 
+            color="danger" 
+            onClick={() => handleDeleteOrganization(deleteConfirm.orgId)}
+            disabled={deleting}
+        >
+            {deleting ? <CSpinner size="sm" /> : "Supprimer"}
+        </CButton>
+    </CModalFooter>
+</CModal>
         </>
     );
 };
